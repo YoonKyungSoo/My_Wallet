@@ -1,0 +1,14 @@
+# MariaDB (스키마 이름은 실제 DB와 동일하게)
+spring.datasource.url=jdbc:mariadb://localhost:3306/poormoney?characterEncoding=UTF-8&serverTimezone=Asia/Seoul
+spring.datasource.username=root
+spring.datasource.password=yooned1357@
+spring.datasource.driver-class-name=org.mariadb.jdbc.Driver
+
+spring.jpa.hibernate.ddl-auto=validate
+spring.jpa.show-sql=false
+spring.jpa.properties.hibernate.format_sql=true
+spring.jpa.open-in-view=false
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MariaDBDialect
+
+server.port=8080
+spring.application.name=poormoney-api

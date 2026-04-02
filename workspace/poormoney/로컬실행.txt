@@ -1,0 +1,5 @@
+1) MariaDB 실행, DB test 준비 (없으면 생성)
+2) sql/ddl_user_badges.sql 한 번 실행 (user_badges 테이블, ddl-auto=validate 인 경우)
+3) application-local.properties.example → application-local.properties 로 복사, 비밀번호 입력
+4) Spring Boot 를 profile=local 로 실행 (PoormoneyApplication-local.launch 또는 Active profiles: local)
+5) wallet-react: npm run dev (.env.development 에 이미 API URL 있음)
