@@ -5,6 +5,37 @@ const KEY = 'wallet_map_comments';
 
 /** @typedef {{ id?: string, nickname: string, levelTitle?: string, rating?: number, text?: string, photos?: string[] }} MapComment */
 
+export const MAP_COMMENTS_CHANGED = 'wallet-map-comments-changed';
+
+const API_CACHE_TTL_MS = 10 * 60 * 1000; // 10분
+/** @type {Map<string, { at: number, list: MapComment[] }>} */
+let apiCacheByRestaurant = new Map();
+
+function notifyChanged() {
+  // 댓글이 추가/삭제되면 캐시를 버려서 즉시 반영되게 함
+  apiCacheByRestaurant = new Map();
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(MAP_COMMENTS_CHANGED));
+  }
+}
+
+/**
+ * 식당 삭제/숨김 등으로 해당 식당 댓글을 즉시 무효화.
+ * - API 모드: 캐시에서 제거
+ * - 로컬 모드: 스토리지에서 삭제
+ */
+export function invalidateMapCommentsForRestaurant(restaurantName) {
+  const key = restaurantName?.trim();
+  if (!key) return;
+  if (isApiConfigured()) {
+    apiCacheByRestaurant.delete(key);
+    notifyChanged();
+    return;
+  }
+  clearMapCommentsForRestaurant(key);
+  notifyChanged();
+}
+
 function readRaw() {
   try {
     const raw = localStorage.getItem(KEY);
@@ -37,6 +68,7 @@ export function saveAllMapComments(store) {
   } catch {
     /* ignore */
   }
+  notifyChanged();
 }
 
 /** @param {string} name */
@@ -60,10 +92,16 @@ export async function fetchMapCommentsForRestaurant(name) {
   }
   const n = name?.trim();
   if (!n) return [];
+  const cached = apiCacheByRestaurant.get(n);
+  if (cached && Date.now() - cached.at < API_CACHE_TTL_MS) {
+    return Array.isArray(cached.list) ? cached.list : [];
+  }
   const res = await apiFetch(`/api/map-comments?restaurantName=${encodeURIComponent(n)}`);
   if (!res.ok) return [];
   const list = await res.json();
-  return Array.isArray(list) ? list : [];
+  const safe = Array.isArray(list) ? list : [];
+  apiCacheByRestaurant.set(n, { at: Date.now(), list: safe });
+  return safe;
 }
 
 /**
@@ -99,6 +137,7 @@ async function deleteMapCommentByIdRemote(commentId) {
     const t = await res.text();
     throw new Error(t || '삭제에 실패했습니다.');
   }
+  notifyChanged();
 }
 
 /** @param {number} index 0-based */

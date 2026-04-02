@@ -12,6 +12,9 @@ import {
 } from '../lib/bookmarks';
 import { RESTAURANTS_CHANGED } from '../lib/approvedRestaurants';
 import { detailPathForRestaurant, getAllRestaurants } from '../data/mainRestaurants';
+import { getMapCommentsForRestaurant } from '../lib/mapComments';
+import { computeRestaurantMetrics } from '../lib/restaurantMetrics';
+import { fetchMapCommentsForRestaurant } from '../lib/mapComments';
 
 const CATEGORY_OPTIONS = [
   '전체',
@@ -74,6 +77,9 @@ export default function WalletPage() {
   const [maxPrice, setMaxPrice] = useState(MAX_PRICE);
   const [items, setItems] = useState([]);
   const [mobilePriceExpanded, setMobilePriceExpanded] = useState(false);
+  /** API 모드: 북마크 식당별 서버 댓글 캐시 */
+  const [apiCommentsByRestaurant, setApiCommentsByRestaurant] = useState({});
+  const [apiCommentsLoading, setApiCommentsLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -96,6 +102,43 @@ export default function WalletPage() {
       window.removeEventListener(BOOKMARKS_CHANGED, onChange);
     };
   }, []);
+
+  useEffect(() => {
+    if (!isApiConfigured() || !isApiSession()) {
+      setApiCommentsByRestaurant({});
+      setApiCommentsLoading(false);
+      return;
+    }
+    let cancelled = false;
+    const names = items.map((x) => x.name).filter(Boolean);
+    if (names.length === 0) {
+      setApiCommentsByRestaurant({});
+      setApiCommentsLoading(false);
+      return;
+    }
+    setApiCommentsLoading(true);
+    const timer = setTimeout(() => {
+      Promise.all(names.map((name) => fetchMapCommentsForRestaurant(name).then((list) => [name, list])))
+        .then((pairs) => {
+          if (cancelled) return;
+          const next = {};
+          for (const [name, list] of pairs) next[name] = Array.isArray(list) ? list : [];
+          setApiCommentsByRestaurant(next);
+          setApiCommentsLoading(false);
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setApiCommentsByRestaurant({});
+            setApiCommentsLoading(false);
+          }
+        });
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      setApiCommentsLoading(false);
+    };
+  }, [items]);
 
   const toggleCategory = (category) => {
     if (category === '전체') {
@@ -456,6 +499,9 @@ export default function WalletPage() {
                 표시: 즐겨찾기한 항목이며, 다시 누르면 즐겨찾기가 해제됩니다.
               </p>
             </div>
+            {isApiConfigured() && apiCommentsLoading ? (
+              <p className="text-slate-400 text-xs font-bold mb-3">리뷰/평점 집계 불러오는 중…</p>
+            ) : null}
             {sortedItems.length === 0 ? (
               <div className="bg-white rounded-[2rem] border border-orange-100 p-8 text-center text-slate-500 font-bold">
                 즐겨찾기한 음식점이 없습니다.
@@ -464,9 +510,10 @@ export default function WalletPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {sortedItems.map((item) => {
                 const avgPrice = avg(item.menuPrices);
-                const avgRating = avg(item.ratings);
-                const low = Math.round(avgPrice * 0.85);
-                const high = Math.round(avgPrice * 1.15);
+                const commentList = isApiConfigured()
+                  ? (apiCommentsByRestaurant[item.name] ?? [])
+                  : getMapCommentsForRestaurant(item.name);
+                const { avgRating, reviewCount } = computeRestaurantMetrics(commentList, avg(item.ratings));
                 return (
                 <article key={item.name} className="group flex flex-col overflow-hidden rounded-2xl border border-orange-50 bg-white shadow-sm transition-all duration-500 hover:shadow-2xl sm:rounded-[2.5rem]">
                   <div className="relative aspect-[16/10] overflow-hidden">
@@ -503,11 +550,14 @@ export default function WalletPage() {
                         <span className="font-bold text-sm">{avgRating.toFixed(1)}</span>
                       </div>
                     </div>
+                    <p className="text-slate-500 text-xs font-bold">
+                      리뷰 {reviewCount}
+                    </p>
                     <div className="flex items-center justify-between mt-auto pt-2 border-t border-slate-50">
                       <div>
                         <span className="text-[10px] font-bold text-slate-400 uppercase">평균가</span>
                         <span className="text-xl font-extrabold text-red-600 block">
-                          {formatWon(low)} ~ {formatWon(high)}
+                          {formatWon(Math.round(avgPrice))}
                         </span>
                       </div>
                     </div>

@@ -45,7 +45,7 @@ import {
   isRestaurantOnMap,
   kakaoMapSearchUrl,
 } from '../lib/adminLinks';
-import { deleteMapCommentById, deleteMapCommentByIndex } from '../lib/mapComments';
+import { deleteMapCommentById, deleteMapCommentByIndex, invalidateMapCommentsForRestaurant } from '../lib/mapComments';
 import { fetchRestaurantsFromApi, getServerRestaurantsCache } from '../lib/restaurantApi';
 import { deleteRestaurantOnServer, updateRestaurantOnServer } from '../lib/restaurantAdminApi';
 import {
@@ -667,6 +667,7 @@ export default function AdminPage() {
                             alert(res.reason || '삭제에 실패했습니다.');
                             return;
                           }
+                          invalidateMapCommentsForRestaurant(r.name);
                           await fetchRestaurantsFromApi();
                           window.dispatchEvent(new Event(RESTAURANTS_CHANGED));
                         } else {

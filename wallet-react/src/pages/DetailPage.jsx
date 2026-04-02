@@ -13,9 +13,11 @@ import {
   deleteMapCommentById,
   fetchMapCommentsForRestaurant,
   getMapCommentsForRestaurant,
+  invalidateMapCommentsForRestaurant,
   removePhotoFromMapComment,
   setMapCommentsForRestaurant,
 } from '../lib/mapComments';
+import { MAP_COMMENTS_CHANGED } from '../lib/mapComments';
 import {
   RESTAURANTS_CHANGED,
   removeApprovedRestaurant,
@@ -33,6 +35,8 @@ import { pushCommentReport } from '../lib/commentReports';
 import { pushActivityHistory } from '../lib/activityHistory';
 import { deleteRestaurantOnServer, updateRestaurantOnServer } from '../lib/restaurantAdminApi';
 import { fetchRestaurantsFromApi } from '../lib/restaurantApi';
+import { toggleRestaurantBookmark } from '../lib/bookmarks';
+import { BOOKMARKS_CHANGED, isRestaurantBookmarked } from '../lib/bookmarks';
 
 const COMMENT_IMAGE_MAX_SIDE = 480;
 /** 쿼리·저장 모두 없을 때 / 잘못된 ?r= 일 때 */
@@ -163,6 +167,18 @@ export default function DetailPage() {
   const menuPrice = (restaurant.menuPriceLabel || saved?.menuPrice || '').trim();
 
   const [comments, setComments] = useState([]);
+  const [bookmarked, setBookmarked] = useState(() => isRestaurantBookmarked(restaurant.name));
+
+  useEffect(() => {
+    const sync = () => setBookmarked(isRestaurantBookmarked(restaurant.name));
+    sync();
+    window.addEventListener(BOOKMARKS_CHANGED, sync);
+    window.addEventListener(AUTH_CHANGED, sync);
+    return () => {
+      window.removeEventListener(BOOKMARKS_CHANGED, sync);
+      window.removeEventListener(AUTH_CHANGED, sync);
+    };
+  }, [restaurant.name]);
 
   useEffect(() => {
     let cancelled = false;
@@ -179,17 +195,34 @@ export default function DetailPage() {
         changed = true;
         return { ...c, id: `mig-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 6)}` };
       });
+      // 로컬 모드: 기존 댓글에 userId가 없으면(과거 데이터) "내 닉네임" 댓글에 userId 보강
+      const sid = session?.id || '';
+      const snick = session?.nickname || '';
+      let userIdBackfilled = false;
+      const withUser = withIds.map((c) => {
+        if (c?.userId || c?.loginId) return c;
+        if (sid && snick && c?.nickname === snick) {
+          userIdBackfilled = true;
+          return { ...c, userId: sid };
+        }
+        return c;
+      });
       if (changed) {
-        setMapCommentsForRestaurant(restaurant.name, withIds);
-        setComments(withIds);
+        setMapCommentsForRestaurant(restaurant.name, withUser);
+        setComments(withUser);
       } else {
-        setComments(list);
+        if (userIdBackfilled) {
+          setMapCommentsForRestaurant(restaurant.name, withUser);
+          setComments(withUser);
+        } else {
+          setComments(list);
+        }
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [restaurant.name]);
+  }, [restaurant.name, session?.id, session?.nickname]);
 
   const isAdmin = Auth.isAdmin();
   const remoteComments = isApiConfigured() && isApiSession();
@@ -321,7 +354,7 @@ export default function DetailPage() {
 
   const adminDeleteApprovedRestaurant = async () => {
     if (!restaurant.approvedId) return;
-    if (!window.confirm(`「${restaurant.name}」을(를) 지도·목록에서 삭제할까요? 댓글 데이터는 유지됩니다.`))
+    if (!window.confirm(`「${restaurant.name}」을(를) 지도·목록에서 삭제할까요? 해당 식당의 댓글/집계도 사라집니다.`))
       return;
     if (isApiConfigured()) {
       const res = await deleteRestaurantOnServer(restaurant.approvedId);
@@ -329,6 +362,8 @@ export default function DetailPage() {
         alert(res.reason || '삭제에 실패했습니다.');
         return;
       }
+      invalidateMapCommentsForRestaurant(restaurant.name);
+      setComments([]);
       await fetchRestaurantsFromApi();
       window.dispatchEvent(new Event(RESTAURANTS_CHANGED));
     } else {
@@ -544,6 +579,9 @@ export default function DetailPage() {
             text,
             photos: photosCopy,
             levelTitle: myLevelTitle,
+            userId: session?.id || null,
+            loginId: session?.id || null,
+            nickname: myNickname,
           }),
         });
         if (!res.ok) {
@@ -551,10 +589,18 @@ export default function DetailPage() {
           return;
         }
         const row = await res.json();
-        setComments((prev) => [...prev, row]);
+        const withUser = {
+          ...row,
+          userId: row?.userId || row?.loginId || session?.id || null,
+          loginId: row?.loginId || session?.id || null,
+          nickname: row?.nickname || myNickname,
+          levelTitle: row?.levelTitle || myLevelTitle,
+        };
+        setComments((prev) => [...prev, withUser]);
         // API 모드: 활동 로그·리뷰수·뱃지는 서버에서 처리 (중복 이벤트 방지)
         setDraftText('');
         setPendingPhotos([]);
+        window.dispatchEvent(new Event(MAP_COMMENTS_CHANGED));
       } catch (e) {
         alert(e?.message || '리뷰 등록에 실패했습니다.');
       }
@@ -569,6 +615,7 @@ export default function DetailPage() {
       ...prev,
       {
         id: cid,
+        userId: session?.id || null,
         nickname: myNickname,
         levelTitle: myLevelTitle,
         rating: draftRating,
@@ -589,6 +636,7 @@ export default function DetailPage() {
     });
     setDraftText('');
     setPendingPhotos([]);
+    window.dispatchEvent(new Event(MAP_COMMENTS_CHANGED));
   };
 
   const removePendingPhoto = (idx) => {
@@ -873,10 +921,23 @@ export default function DetailPage() {
                 </button>
                 <button
                   type="button"
-                  className="flex-1 py-4 bg-white border-2 border-slate-900 text-slate-900 rounded-2xl font-extrabold hover:bg-slate-900 hover:text-white transition-colors"
-                  onClick={() => alert('내 지갑에 저장되었습니다!')}
+                  className={`flex-1 py-4 border-2 rounded-2xl font-extrabold transition-colors ${
+                    bookmarked
+                      ? 'bg-slate-900 border-slate-900 text-white'
+                      : 'bg-white border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white'
+                  }`}
+                    onClick={async () => {
+                      if (!requireLogin('저장 기능은 로그인 후 이용할 수 있습니다.')) return;
+                      try {
+                        const on = await toggleRestaurantBookmark(restaurant.name);
+                      setBookmarked(on);
+                        alert(on ? '내 지갑에 저장되었습니다!' : '내 지갑에서 제거했습니다.');
+                      } catch (e) {
+                        alert(e?.message || '저장 처리에 실패했습니다.');
+                      }
+                    }}
                 >
-                  내 지갑에 저장하기
+                  {bookmarked ? '내 지갑에 저장됨' : '내 지갑에 저장하기'}
                 </button>
               </div>
             </section>
@@ -974,7 +1035,9 @@ export default function DetailPage() {
                   <p className="text-sm font-bold text-slate-400">아직 리뷰가 없어요. 첫 리뷰를 남겨 보세요!</p>
                 ) : (
                   comments.map((c, idx) => {
-                    const isMine = isLoggedIn && c.nickname === myNickname;
+                    const myId = session?.id || '';
+                    const cUserId = c?.userId || c?.loginId || '';
+                    const isMine = Boolean(isLoggedIn && myId && cUserId && String(cUserId) === String(myId));
                     return (
                       <div
                         key={c.id || `${idx}-${c.nickname}`}
@@ -984,6 +1047,9 @@ export default function DetailPage() {
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <p className="text-sm font-bold text-slate-900">
                             {c.nickname}
+                            {(c.userId || c.loginId) ? (
+                              <span className="text-xs font-extrabold text-slate-500"> ({c.userId || c.loginId})</span>
+                            ) : null}
                             {(c.levelTitle || '').trim() ? (
                               <span className="text-violet-600 font-extrabold"> · 「{c.levelTitle}」</span>
                             ) : null}
@@ -1021,12 +1087,14 @@ export default function DetailPage() {
                                         try {
                                           await deleteMapCommentById(restaurant.name, c.id);
                                           setComments(await fetchMapCommentsForRestaurant(restaurant.name));
+                                          window.dispatchEvent(new Event(MAP_COMMENTS_CHANGED));
                                         } catch (e) {
                                           alert(e?.message || '삭제에 실패했습니다.');
                                         }
                                       })();
                                     } else {
                                       persistComments(comments.filter((_, i) => i !== idx));
+                                      window.dispatchEvent(new Event(MAP_COMMENTS_CHANGED));
                                     }
                                   }}
                                 >
@@ -1074,6 +1142,7 @@ export default function DetailPage() {
                                       try {
                                         await deleteMapCommentById(restaurant.name, c.id);
                                         setComments(await fetchMapCommentsForRestaurant(restaurant.name));
+                                          window.dispatchEvent(new Event(MAP_COMMENTS_CHANGED));
                                       } catch (e) {
                                         alert(e?.message || '삭제에 실패했습니다.');
                                       }
@@ -1082,6 +1151,7 @@ export default function DetailPage() {
                                     if (c.id) deleteMapCommentById(restaurant.name, c.id);
                                     else persistComments(comments.filter((_, i) => i !== idx));
                                     setComments(getMapCommentsForRestaurant(restaurant.name));
+                                      window.dispatchEvent(new Event(MAP_COMMENTS_CHANGED));
                                   }
                                 }}
                               >

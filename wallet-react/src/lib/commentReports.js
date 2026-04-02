@@ -44,10 +44,12 @@ function saveCommentReports(list) {
 export function pushCommentReport(entry) {
   if (isApiConfigured() && hasLoginHeader()) {
     return (async () => {
+      const rawId = entry.commentId ?? '';
+      const commentId = typeof rawId === 'string' ? rawId : String(rawId);
       const res = await apiFetch('/api/comment-reports', {
         method: 'POST',
         headers: { ...loginHeaders(), 'Content-Type': 'application/json' },
-        body: JSON.stringify({ commentId: Number(entry.commentId), reason: entry.reason }),
+        body: JSON.stringify({ commentId, reason: entry.reason }),
       });
       if (!res.ok) throw new Error((await res.text()) || '댓글 신고 접수 실패');
     })();

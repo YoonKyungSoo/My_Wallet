@@ -1,13 +1,14 @@
 import Layout from '../components/Layout';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import ImageWithFallback from '../components/ImageWithFallback';
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { detailPathForRestaurant, getAllRestaurants } from '../data/mainRestaurants';
 import { RESTAURANTS_CHANGED } from '../lib/approvedRestaurants';
 import { isApiConfigured } from '../lib/api';
 import { AUTH_CHANGED } from '../lib/auth';
 import { BOOKMARKS_CHANGED, loadBookmarksFromApi } from '../lib/bookmarks';
 import { fetchMapCommentsForRestaurant, getMapCommentsForRestaurant } from '../lib/mapComments';
+import { MAP_COMMENTS_CHANGED } from '../lib/mapComments';
 import { fetchRestaurantsFromApi } from '../lib/restaurantApi';
 import { mergeRestaurantGalleryPhotos } from '../lib/restaurantGallery';
 import { isRestaurantBookmarked, toggleRestaurantBookmark } from '../lib/bookmarks';
@@ -20,6 +21,7 @@ import {
   saveMainMapView,
 } from '../lib/mainMapView';
 import { fetchSiteNoticeFromApi, getActiveNoticeText, SITE_NOTICE_CHANGED } from '../lib/siteNotice';
+import { computeRestaurantMetrics } from '../lib/restaurantMetrics';
 
 function escapeHtml(s) {
   return String(s)
@@ -80,6 +82,7 @@ export default function MainPage() {
   const [restaurantListVersion, setRestaurantListVersion] = useState(0);
   /** API 모드: 카테고리 필터에 맞는 식당별 서버 댓글 목록(지도 카드 리뷰 수·썸네일용) */
   const [apiCommentsByRestaurant, setApiCommentsByRestaurant] = useState({});
+  const [apiCommentsLoading, setApiCommentsLoading] = useState(false);
   const [siteNoticeText, setSiteNoticeText] = useState(() => getActiveNoticeText());
   const mapRef = useRef(null);
   const myMarkerRef = useRef(null);
@@ -120,7 +123,11 @@ export default function MainPage() {
   useEffect(() => {
     const bump = () => setRestaurantListVersion((v) => v + 1);
     window.addEventListener(RESTAURANTS_CHANGED, bump);
-    return () => window.removeEventListener(RESTAURANTS_CHANGED, bump);
+    window.addEventListener(MAP_COMMENTS_CHANGED, bump);
+    return () => {
+      window.removeEventListener(RESTAURANTS_CHANGED, bump);
+      window.removeEventListener(MAP_COMMENTS_CHANGED, bump);
+    };
   }, []);
 
   useEffect(() => {
@@ -466,6 +473,7 @@ export default function MainPage() {
       return undefined;
     }
     let cancelled = false;
+    setApiCommentsLoading(true);
     const names = categoryCards.map((c) => c.name);
     const timer = setTimeout(() => {
       Promise.all(
@@ -475,11 +483,15 @@ export default function MainPage() {
         const next = {};
         for (const [name, list] of pairs) next[name] = Array.isArray(list) ? list : [];
         setApiCommentsByRestaurant(next);
+        setApiCommentsLoading(false);
+      }).catch(() => {
+        if (!cancelled) setApiCommentsLoading(false);
       });
     }, 400);
     return () => {
       cancelled = true;
       clearTimeout(timer);
+      setApiCommentsLoading(false);
     };
   }, [categoryCards, restaurantListVersion]);
 
@@ -497,10 +509,17 @@ export default function MainPage() {
     });
 
     const sorted = [...filtered];
+    const commentListFor = (card) => {
+      if (!card?.name) return [];
+      if (isApiConfigured()) return apiCommentsByRestaurant[card.name] ?? [];
+      return getMapCommentsForRestaurant(card.name) ?? [];
+    };
+    const reviewCountFor = (card) => computeRestaurantMetrics(commentListFor(card), card?.rating).reviewCount;
+    const avgRatingFor = (card) => computeRestaurantMetrics(commentListFor(card), card?.rating).avgRating;
     if (activeSort === '평점순') {
-      sorted.sort((a, b) => Number(b.rating) - Number(a.rating));
+      sorted.sort((a, b) => avgRatingFor(b) - avgRatingFor(a));
     } else if (activeSort === '리뷰순') {
-      sorted.sort((a, b) => b.reviewCount - a.reviewCount);
+      sorted.sort((a, b) => reviewCountFor(b) - reviewCountFor(a));
     } else {
       sorted.sort((a, b) => {
         const aAvg = a.menuPrices.reduce((x, y) => x + y, 0) / a.menuPrices.length;
@@ -509,7 +528,26 @@ export default function MainPage() {
       });
     }
     return sorted;
-  }, [categoryCards, activeSort, mapBounds, resolvedPositions]);
+  }, [categoryCards, activeSort, mapBounds, resolvedPositions, apiCommentsByRestaurant]);
+
+  const commentListForCard = useCallback(
+    (card) => {
+      if (!card?.name) return [];
+      if (isApiConfigured()) return apiCommentsByRestaurant[card.name] ?? [];
+      return getMapCommentsForRestaurant(card.name) ?? [];
+    },
+    [apiCommentsByRestaurant],
+  );
+
+  const reviewCountForCard = useCallback(
+    (card) => computeRestaurantMetrics(commentListForCard(card), card?.rating).reviewCount,
+    [commentListForCard],
+  );
+
+  const avgRatingForCard = useCallback(
+    (card) => computeRestaurantMetrics(commentListForCard(card), card?.rating).avgRating,
+    [commentListForCard],
+  );
 
   const getCardPosition = (card) => {
     if (!window.kakao?.maps) return null;
@@ -553,9 +591,9 @@ export default function MainPage() {
       const mapComments = isApiConfigured()
         ? apiCommentsByRestaurant[card.name] ?? []
         : getMapCommentsForRestaurant(card.name);
-      const visitorReviewCount = mapComments.length;
-      const ratingNum = Number(card.rating) || 0;
-      const fullStars = Math.min(5, Math.max(0, Math.round(ratingNum)));
+        const { avgRating, reviewCount } = computeRestaurantMetrics(mapComments, card?.rating);
+        const visitorReviewCount = reviewCount;
+        const fullStars = Math.min(5, Math.max(0, Math.round(avgRating)));
       const starsHtml = Array.from({ length: 5 }, (_, i) => {
         const on = i < fullStars;
         return `<span class="${on ? 'text-red-500' : 'text-slate-200'} text-[11px] sm:text-[13px] md:text-[15px] leading-none tracking-tight">★</span>`;
@@ -899,6 +937,9 @@ export default function MainPage() {
                 ? '현재 지도 범위 내에서 가장 점수가 높은 식당들입니다.'
                 : '지도가 안 뜨면 카카오 콘솔 > 플랫폼 Web에 localhost 도메인을 등록해 주세요.'}
             </p>
+            {isApiConfigured() && apiCommentsLoading ? (
+              <p className="text-slate-400 text-xs font-bold mt-1">리뷰/평점 집계 불러오는 중…</p>
+            ) : null}
           </div>
           <div className="flex gap-1.5 sm:gap-2 p-1 bg-white shadow-sm border border-slate-100 rounded-xl sm:rounded-2xl w-full md:w-auto overflow-x-auto scrollbar-none [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {['평점순', '최저가순', '리뷰순'].map((sort) => (
@@ -962,11 +1003,14 @@ export default function MainPage() {
                     <h3 className="text-lg sm:text-xl font-bold text-slate-900 group-hover:text-orange-600 transition-colors min-w-0">{card.name}</h3>
                     <div className="flex items-center gap-1 text-orange-500 bg-orange-50 px-2 py-0.5 rounded-lg">
                       <iconify-icon icon="lucide:star" class="fill-orange-500"></iconify-icon>
-                      <span className="font-bold text-sm">{card.rating}</span>
+                      <span className="font-bold text-sm">{avgRatingForCard(card).toFixed(1)}</span>
                     </div>
                   </div>
                   <p className="text-slate-400 text-xs flex items-center gap-1 mb-4">
                     <iconify-icon icon="lucide:map-pin"></iconify-icon>{card.address}
+                  </p>
+                  <p className="text-slate-500 text-xs font-bold mb-3">
+                    리뷰 {reviewCountForCard(card)}
                   </p>
                   <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-50">
                     <div className="flex flex-col">
