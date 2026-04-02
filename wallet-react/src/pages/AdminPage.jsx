@@ -135,6 +135,9 @@ export default function AdminPage() {
 
   const pendingUnbans = useMemo(() => listPendingUnbanRequests(), [tick]);
 
+  const [noticeBody, setNoticeBody] = useState(() => getSiteNotice().text);
+  const syncNoticeField = useCallback(() => setNoticeBody(getSiteNotice().text), []);
+
   useEffect(() => {
     const bump = () => setTick((t) => t + 1);
     window.addEventListener(UNBAN_REQUESTS_CHANGED, bump);
@@ -183,9 +186,6 @@ export default function AdminPage() {
     }
     return allReports.filter((r) => r.status === histReportFilter);
   }, [allReports, histReportFilter]);
-
-  const [noticeBody, setNoticeBody] = useState(() => getSiteNotice().text);
-  const syncNoticeField = useCallback(() => setNoticeBody(getSiteNotice().text), [tick]);
 
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState(null);

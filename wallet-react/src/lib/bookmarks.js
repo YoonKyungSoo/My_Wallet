@@ -33,13 +33,13 @@ function writeList(names) {
   }
 }
 
-function useRemoteBookmarks() {
+function shouldUseRemoteBookmarks() {
   return isApiConfigured() && isApiSession();
 }
 
 /** 서버 북마크 목록 로드 (로그인 세션 없으면 빈 집합) */
 export async function loadBookmarksFromApi() {
-  if (!useRemoteBookmarks()) {
+  if (!shouldUseRemoteBookmarks()) {
     apiBookmarkSet = null;
     apiBookmarksLoaded = false;
     return;
@@ -63,7 +63,7 @@ export async function loadBookmarksFromApi() {
 }
 
 export function getBookmarkedRestaurantNames() {
-  if (useRemoteBookmarks()) {
+  if (shouldUseRemoteBookmarks()) {
     if (!apiBookmarksLoaded || !apiBookmarkSet) return [];
     return [...apiBookmarkSet];
   }
@@ -72,7 +72,7 @@ export function getBookmarkedRestaurantNames() {
 
 export function isRestaurantBookmarked(name) {
   if (!name) return false;
-  if (useRemoteBookmarks()) {
+  if (shouldUseRemoteBookmarks()) {
     if (!apiBookmarksLoaded || !apiBookmarkSet) return false;
     return apiBookmarkSet.has(name);
   }
@@ -82,7 +82,7 @@ export function isRestaurantBookmarked(name) {
 /** @returns {Promise<boolean>} 북마크된 상태로 바뀐 뒤 값 */
 export async function toggleRestaurantBookmark(name) {
   if (!name) return false;
-  if (useRemoteBookmarks()) {
+  if (shouldUseRemoteBookmarks()) {
     const res = await apiFetch(`/api/bookmarks/toggle?name=${encodeURIComponent(name)}`, {
       method: 'POST',
       headers: loginHeaders(),
@@ -115,7 +115,7 @@ export async function toggleRestaurantBookmark(name) {
 export function removeBookmarkByRestaurantName(name) {
   const n = name?.trim();
   if (!n) return;
-  if (useRemoteBookmarks()) {
+  if (shouldUseRemoteBookmarks()) {
     if (apiBookmarkSet?.has(n)) {
       void toggleRestaurantBookmark(n).catch(() => {});
     }
@@ -130,7 +130,7 @@ export function renameRestaurantInBookmarks(oldName, newName) {
   const o = oldName?.trim();
   const n = newName?.trim();
   if (!o || !n || o === n) return;
-  if (useRemoteBookmarks()) {
+  if (shouldUseRemoteBookmarks()) {
     if (apiBookmarkSet?.has(o)) {
       apiBookmarkSet.delete(o);
       apiBookmarkSet.add(n);

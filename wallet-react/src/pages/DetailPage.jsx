@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-do
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ImageWithFallback from '../components/ImageWithFallback';
 import { apiFetch, isApiConfigured } from '../lib/api';
-import { Auth, fetchMyStatsFromApi, isApiSession, loginHeaders, parseApiErrorMessage } from '../lib/auth';
+import { Auth, AUTH_CHANGED, fetchMyStatsFromApi, isApiSession, loginHeaders, parseApiErrorMessage } from '../lib/auth';
 import { levelTitleFromStats } from '../lib/profileBadges';
 import { fileToProfileDataUrl } from '../lib/profileImage';
 import { KAKAO_MAP_KEY, loadKakaoMapScript } from '../lib/kakaoMapLoader';
