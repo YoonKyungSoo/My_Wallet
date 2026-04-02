@@ -12,18 +12,22 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
   const [bannedUserId, setBannedUserId] = useState(null);
+  const [banReason, setBanReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const onSubmit = async (e) => {
     e.preventDefault();
     setBannedUserId(null);
+    setBanReason('');
     setSubmitting(true);
     try {
       const res = await Auth.login({ id, password });
       if (!res.ok) {
         if (res.code === 'banned') {
           setBannedUserId(res.userId);
-          setLoginError(res.reason || '정지된 회원입니다.');
+          // res.reason 을 정지 사유로 별도 표시 (백엔드 구현 시 정지사유를 여기에 내려주면 됨)
+          setBanReason(res.reason || '');
+          setLoginError('정지된 회원입니다.');
           return;
         }
         setLoginError(res.reason || '아이디 또는 비밀번호가 올바르지 않습니다.');
@@ -54,6 +58,7 @@ export default function LoginPage() {
                   setId(e.target.value);
                   if (loginError) setLoginError('');
                   setBannedUserId(null);
+                  setBanReason('');
                 }}
                 required
               />
@@ -70,12 +75,16 @@ export default function LoginPage() {
                   setPassword(e.target.value);
                   if (loginError) setLoginError('');
                   setBannedUserId(null);
+                  setBanReason('');
                 }}
                 required
               />
             </div>
             {loginError ? (
               <p className="text-[12px] font-bold text-red-500">* {loginError}</p>
+            ) : null}
+            {bannedUserId && banReason ? (
+              <p className="text-[12px] font-bold text-amber-700">정지 사유: {banReason}</p>
             ) : null}
             {bannedUserId ? (
               <div className="mt-4 p-4 rounded-2xl bg-amber-50 border border-amber-200 space-y-2">
