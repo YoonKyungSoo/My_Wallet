@@ -1445,3 +1445,129 @@ java.lang.Exception: Resolve classpath: unable to resolve a project from : file:
 
 !ENTRY org.springframework.tooling.boot.ls 1 0 2026-04-02 16:09:19.207
 !MESSAGE Classpath changed for project: poormoney
+
+!ENTRY org.springframework.tooling.boot.ls 1 0 2026-04-02 17:54:36.751
+!MESSAGE Classpath changed for project: poormoney
+
+!ENTRY org.springframework.tooling.boot.ls 1 0 2026-04-02 17:54:37.019
+!MESSAGE Classpath changed for project: poormoney
+
+!ENTRY org.springframework.tooling.ls.eclipse.commons 1 0 2026-04-02 17:54:38.060
+!MESSAGE Failed to fetch type data for element witn key: Ljava/lang/String;
+
+!ENTRY org.springframework.tooling.ls.eclipse.commons 4 0 2026-04-02 17:54:38.062
+!MESSAGE Resolve classpath: unable to resolve a project from : file:/C:/Users/safecnc/Desktop/%EA%B1%B0%EC%A7%80%EB%93%A4%EC%9D%98%20%EC%A7%80%EA%B0%91/%EA%B1%B0%EC%A7%80%EB%93%A4%EC%9D%98%20%EC%A7%80%EA%B0%91/%EA%B1%B0%EC%A7%80%EB%93%A4%EC%9D%98%20%EC%A7%80%EA%B0%91/workspace/poormoney
+!STACK 0
+java.lang.Exception: Resolve classpath: unable to resolve a project from : file:/C:/Users/safecnc/Desktop/%EA%B1%B0%EC%A7%80%EB%93%A4%EC%9D%98%20%EC%A7%80%EA%B0%91/%EA%B1%B0%EC%A7%80%EB%93%A4%EC%9D%98%20%EC%A7%80%EA%B0%91/%EA%B1%B0%EC%A7%80%EB%93%A4%EC%9D%98%20%EC%A7%80%EA%B0%91/workspace/poormoney
+	at org.springframework.tooling.jdt.ls.commons.resources.ResourceUtils.getProject(ResourceUtils.java:66)
+	at org.springframework.tooling.jdt.ls.commons.resources.ResourceUtils.getJavaProject(ResourceUtils.java:37)
+	at org.springframework.tooling.jdt.ls.commons.java.JavaData.findElement(JavaData.java:79)
+	at org.springframework.tooling.jdt.ls.commons.java.JavaData.typeData(JavaData.java:67)
+	at org.springframework.tooling.ls.eclipse.commons.STS4LanguageClientImpl.lambda$16(STS4LanguageClientImpl.java:521)
+	at java.base/java.util.concurrent.CompletableFuture$AsyncSupply.run(CompletableFuture.java:1768)
+	at java.base/java.util.concurrent.CompletableFuture$AsyncSupply.exec(CompletableFuture.java:1760)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:387)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1312)
+	at java.base/java.util.concurrent.ForkJoinPool.scan(ForkJoinPool.java:1843)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:1808)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:188)
+
+!ENTRY org.springframework.tooling.ls.eclipse.commons 1 0 2026-04-02 17:54:38.229
+!MESSAGE Failed to fetch type data for element witn key: Ljava/util/Map;
+
+!ENTRY org.springframework.tooling.ls.eclipse.commons 4 0 2026-04-02 17:54:38.230
+!MESSAGE Resolve classpath: unable to resolve a project from : file:/C:/Users/safecnc/Desktop/%EA%B1%B0%EC%A7%80%EB%93%A4%EC%9D%98%20%EC%A7%80%EA%B0%91/%EA%B1%B0%EC%A7%80%EB%93%A4%EC%9D%98%20%EC%A7%80%EA%B0%91/%EA%B1%B0%EC%A7%80%EB%93%A4%EC%9D%98%20%EC%A7%80%EA%B0%91/workspace/poormoney
+!STACK 0
+java.lang.Exception: Resolve classpath: unable to resolve a project from : file:/C:/Users/safecnc/Desktop/%EA%B1%B0%EC%A7%80%EB%93%A4%EC%9D%98%20%EC%A7%80%EA%B0%91/%EA%B1%B0%EC%A7%80%EB%93%A4%EC%9D%98%20%EC%A7%80%EA%B0%91/%EA%B1%B0%EC%A7%80%EB%93%A4%EC%9D%98%20%EC%A7%80%EA%B0%91/workspace/poormoney
+	at org.springframework.tooling.jdt.ls.commons.resources.ResourceUtils.getProject(ResourceUtils.java:66)
+	at org.springframework.tooling.jdt.ls.commons.resources.ResourceUtils.getJavaProject(ResourceUtils.java:37)
+	at org.springframework.tooling.jdt.ls.commons.java.JavaData.findElement(JavaData.java:79)
+	at org.springframework.tooling.jdt.ls.commons.java.JavaData.typeData(JavaData.java:67)
+	at org.springframework.tooling.ls.eclipse.commons.STS4LanguageClientImpl.lambda$16(STS4LanguageClientImpl.java:521)
+	at java.base/java.util.concurrent.CompletableFuture$AsyncSupply.run(CompletableFuture.java:1768)
+	at java.base/java.util.concurrent.CompletableFuture$AsyncSupply.exec(CompletableFuture.java:1760)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:387)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1312)
+	at java.base/java.util.concurrent.ForkJoinPool.scan(ForkJoinPool.java:1843)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:1808)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:188)
+
+!ENTRY org.springframework.tooling.ls.eclipse.commons 1 0 2026-04-02 17:54:38.313
+!MESSAGE Failed to fetch type data for element witn key: Lorg/springframework/boot/autoconfigure/web/ErrorProperties$IncludeAttribute;
+
+!ENTRY org.springframework.tooling.ls.eclipse.commons 4 0 2026-04-02 17:54:38.314
+!MESSAGE Resolve classpath: unable to resolve a project from : file:/C:/Users/safecnc/Desktop/%EA%B1%B0%EC%A7%80%EB%93%A4%EC%9D%98%20%EC%A7%80%EA%B0%91/%EA%B1%B0%EC%A7%80%EB%93%A4%EC%9D%98%20%EC%A7%80%EA%B0%91/%EA%B1%B0%EC%A7%80%EB%93%A4%EC%9D%98%20%EC%A7%80%EA%B0%91/workspace/poormoney
+!STACK 0
+java.lang.Exception: Resolve classpath: unable to resolve a project from : file:/C:/Users/safecnc/Desktop/%EA%B1%B0%EC%A7%80%EB%93%A4%EC%9D%98%20%EC%A7%80%EA%B0%91/%EA%B1%B0%EC%A7%80%EB%93%A4%EC%9D%98%20%EC%A7%80%EA%B0%91/%EA%B1%B0%EC%A7%80%EB%93%A4%EC%9D%98%20%EC%A7%80%EA%B0%91/workspace/poormoney
+	at org.springframework.tooling.jdt.ls.commons.resources.ResourceUtils.getProject(ResourceUtils.java:66)
+	at org.springframework.tooling.jdt.ls.commons.resources.ResourceUtils.getJavaProject(ResourceUtils.java:37)
+	at org.springframework.tooling.jdt.ls.commons.java.JavaData.findElement(JavaData.java:79)
+	at org.springframework.tooling.jdt.ls.commons.java.JavaData.typeData(JavaData.java:67)
+	at org.springframework.tooling.ls.eclipse.commons.STS4LanguageClientImpl.lambda$16(STS4LanguageClientImpl.java:521)
+	at java.base/java.util.concurrent.CompletableFuture$AsyncSupply.run(CompletableFuture.java:1768)
+	at java.base/java.util.concurrent.CompletableFuture$AsyncSupply.exec(CompletableFuture.java:1760)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:387)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1312)
+	at java.base/java.util.concurrent.ForkJoinPool.scan(ForkJoinPool.java:1843)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:1808)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:188)
+
+!ENTRY org.springframework.tooling.ls.eclipse.commons 1 0 2026-04-02 18:08:56.466
+!MESSAGE Failed to fetch type data for element witn key: Ljava/lang/String;
+
+!ENTRY org.springframework.tooling.ls.eclipse.commons 4 0 2026-04-02 18:08:56.468
+!MESSAGE Resolve classpath: unable to resolve a project from : file:/C:/Users/safecnc/Desktop/%EA%B1%B0%EC%A7%80%EB%93%A4%EC%9D%98%20%EC%A7%80%EA%B0%91/%EA%B1%B0%EC%A7%80%EB%93%A4%EC%9D%98%20%EC%A7%80%EA%B0%91/%EA%B1%B0%EC%A7%80%EB%93%A4%EC%9D%98%20%EC%A7%80%EA%B0%91/workspace/poormoney
+!STACK 0
+java.lang.Exception: Resolve classpath: unable to resolve a project from : file:/C:/Users/safecnc/Desktop/%EA%B1%B0%EC%A7%80%EB%93%A4%EC%9D%98%20%EC%A7%80%EA%B0%91/%EA%B1%B0%EC%A7%80%EB%93%A4%EC%9D%98%20%EC%A7%80%EA%B0%91/%EA%B1%B0%EC%A7%80%EB%93%A4%EC%9D%98%20%EC%A7%80%EA%B0%91/workspace/poormoney
+	at org.springframework.tooling.jdt.ls.commons.resources.ResourceUtils.getProject(ResourceUtils.java:66)
+	at org.springframework.tooling.jdt.ls.commons.resources.ResourceUtils.getJavaProject(ResourceUtils.java:37)
+	at org.springframework.tooling.jdt.ls.commons.java.JavaData.findElement(JavaData.java:79)
+	at org.springframework.tooling.jdt.ls.commons.java.JavaData.typeData(JavaData.java:67)
+	at org.springframework.tooling.ls.eclipse.commons.STS4LanguageClientImpl.lambda$16(STS4LanguageClientImpl.java:521)
+	at java.base/java.util.concurrent.CompletableFuture$AsyncSupply.run(CompletableFuture.java:1768)
+	at java.base/java.util.concurrent.CompletableFuture$AsyncSupply.exec(CompletableFuture.java:1760)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:387)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1312)
+	at java.base/java.util.concurrent.ForkJoinPool.scan(ForkJoinPool.java:1843)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:1808)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:188)
+
+!ENTRY org.springframework.tooling.ls.eclipse.commons 1 0 2026-04-02 18:08:56.501
+!MESSAGE Failed to fetch type data for element witn key: Ljava/util/Map;
+
+!ENTRY org.springframework.tooling.ls.eclipse.commons 4 0 2026-04-02 18:08:56.503
+!MESSAGE Resolve classpath: unable to resolve a project from : file:/C:/Users/safecnc/Desktop/%EA%B1%B0%EC%A7%80%EB%93%A4%EC%9D%98%20%EC%A7%80%EA%B0%91/%EA%B1%B0%EC%A7%80%EB%93%A4%EC%9D%98%20%EC%A7%80%EA%B0%91/%EA%B1%B0%EC%A7%80%EB%93%A4%EC%9D%98%20%EC%A7%80%EA%B0%91/workspace/poormoney
+!STACK 0
+java.lang.Exception: Resolve classpath: unable to resolve a project from : file:/C:/Users/safecnc/Desktop/%EA%B1%B0%EC%A7%80%EB%93%A4%EC%9D%98%20%EC%A7%80%EA%B0%91/%EA%B1%B0%EC%A7%80%EB%93%A4%EC%9D%98%20%EC%A7%80%EA%B0%91/%EA%B1%B0%EC%A7%80%EB%93%A4%EC%9D%98%20%EC%A7%80%EA%B0%91/workspace/poormoney
+	at org.springframework.tooling.jdt.ls.commons.resources.ResourceUtils.getProject(ResourceUtils.java:66)
+	at org.springframework.tooling.jdt.ls.commons.resources.ResourceUtils.getJavaProject(ResourceUtils.java:37)
+	at org.springframework.tooling.jdt.ls.commons.java.JavaData.findElement(JavaData.java:79)
+	at org.springframework.tooling.jdt.ls.commons.java.JavaData.typeData(JavaData.java:67)
+	at org.springframework.tooling.ls.eclipse.commons.STS4LanguageClientImpl.lambda$16(STS4LanguageClientImpl.java:521)
+	at java.base/java.util.concurrent.CompletableFuture$AsyncSupply.run(CompletableFuture.java:1768)
+	at java.base/java.util.concurrent.CompletableFuture$AsyncSupply.exec(CompletableFuture.java:1760)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:387)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1312)
+	at java.base/java.util.concurrent.ForkJoinPool.scan(ForkJoinPool.java:1843)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:1808)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:188)
+
+!ENTRY org.springframework.tooling.ls.eclipse.commons 1 0 2026-04-02 18:08:56.537
+!MESSAGE Failed to fetch type data for element witn key: Lorg/springframework/boot/autoconfigure/web/ErrorProperties$IncludeAttribute;
+
+!ENTRY org.springframework.tooling.ls.eclipse.commons 4 0 2026-04-02 18:08:56.538
+!MESSAGE Resolve classpath: unable to resolve a project from : file:/C:/Users/safecnc/Desktop/%EA%B1%B0%EC%A7%80%EB%93%A4%EC%9D%98%20%EC%A7%80%EA%B0%91/%EA%B1%B0%EC%A7%80%EB%93%A4%EC%9D%98%20%EC%A7%80%EA%B0%91/%EA%B1%B0%EC%A7%80%EB%93%A4%EC%9D%98%20%EC%A7%80%EA%B0%91/workspace/poormoney
+!STACK 0
+java.lang.Exception: Resolve classpath: unable to resolve a project from : file:/C:/Users/safecnc/Desktop/%EA%B1%B0%EC%A7%80%EB%93%A4%EC%9D%98%20%EC%A7%80%EA%B0%91/%EA%B1%B0%EC%A7%80%EB%93%A4%EC%9D%98%20%EC%A7%80%EA%B0%91/%EA%B1%B0%EC%A7%80%EB%93%A4%EC%9D%98%20%EC%A7%80%EA%B0%91/workspace/poormoney
+	at org.springframework.tooling.jdt.ls.commons.resources.ResourceUtils.getProject(ResourceUtils.java:66)
+	at org.springframework.tooling.jdt.ls.commons.resources.ResourceUtils.getJavaProject(ResourceUtils.java:37)
+	at org.springframework.tooling.jdt.ls.commons.java.JavaData.findElement(JavaData.java:79)
+	at org.springframework.tooling.jdt.ls.commons.java.JavaData.typeData(JavaData.java:67)
+	at org.springframework.tooling.ls.eclipse.commons.STS4LanguageClientImpl.lambda$16(STS4LanguageClientImpl.java:521)
+	at java.base/java.util.concurrent.CompletableFuture$AsyncSupply.run(CompletableFuture.java:1768)
+	at java.base/java.util.concurrent.CompletableFuture$AsyncSupply.exec(CompletableFuture.java:1760)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:387)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1312)
+	at java.base/java.util.concurrent.ForkJoinPool.scan(ForkJoinPool.java:1843)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:1808)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:188)
