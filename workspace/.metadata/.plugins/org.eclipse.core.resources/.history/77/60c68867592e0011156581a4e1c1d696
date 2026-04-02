@@ -1,0 +1,15 @@
+# 로컬: profile=local + application-local.properties (비밀번호)
+spring.datasource.url=jdbc:mariadb://localhost:3306/test?characterEncoding=UTF-8&serverTimezone=Asia/Seoul
+spring.datasource.username=root
+spring.datasource.password=
+spring.datasource.driver-class-name=org.mariadb.jdbc.Driver
+
+spring.jpa.hibernate.ddl-auto=validate
+spring.jpa.show-sql=false
+spring.jpa.properties.hibernate.format_sql=true
+spring.jpa.open-in-view=false
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MariaDBDialect
+
+server.port=8080
+spring.application.name=poormoney-api
+server.error.include-message=always

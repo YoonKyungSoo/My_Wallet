@@ -1,0 +1,2 @@
+# 로컬 DB 비밀번호 등 — 커밋 금지
+src/main/resources/application-local.properties
