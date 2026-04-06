@@ -7,9 +7,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface BookmarkRepository extends JpaRepository<BookmarkEntity, Long> {
   List<BookmarkEntity> findByUserIdOrderByIdDesc(Long userId);
 
-  Optional<BookmarkEntity> findByUserIdAndRestaurantName(Long userId, String restaurantName);
+  Optional<BookmarkEntity> findByUserIdAndRestaurantId(Long userId, Long restaurantId);
 
-  void deleteByUserIdAndRestaurantName(Long userId, String restaurantName);
+  void deleteByUserIdAndRestaurantId(Long userId, Long restaurantId);
+
+  void deleteByUserId(Long userId);
+
+  void deleteByRestaurantId(Long restaurantId);
 
   int countByUserId(Long userId);
 }

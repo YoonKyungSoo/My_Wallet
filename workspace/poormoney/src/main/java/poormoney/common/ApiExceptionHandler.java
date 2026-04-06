@@ -31,5 +31,11 @@ public class ApiExceptionHandler {
             .orElse("요청 값이 올바르지 않습니다.");
     return ResponseEntity.badRequest().body(new ErrorResponse(msg));
   }
+
+  @ExceptionHandler(Exception.class)
+  public ResponseEntity<ErrorResponse> handleEtc(Exception e) {
+    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .body(new ErrorResponse("서버 처리 중 오류가 발생했습니다."));
+  }
 }
 

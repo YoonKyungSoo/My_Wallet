@@ -7,6 +7,23 @@ const KEY = 'wallet_pending_restaurant_submissions';
 /** @type {object[] | null} */
 let apiSubmissionCache = null;
 
+async function readErrorMessage(res, fallback) {
+  try {
+    const text = await res.text();
+    if (!text) return fallback;
+    try {
+      const j = JSON.parse(text);
+      if (typeof j?.message === 'string' && j.message) return j.message;
+      if (typeof j?.error === 'string' && j.error) return j.error;
+    } catch {
+      /* ignore */
+    }
+    return text;
+  } catch {
+    return fallback;
+  }
+}
+
 export function listPendingSubmissions() {
   return listAllSubmissionsForAdmin().filter((x) => x.status === 'pending');
 }
@@ -32,16 +49,17 @@ function writeAll(list) {
 
 function mapApiSubmission(s) {
   const cat = s.categoryLabel ?? s.category ?? '';
+  const normalizedStatus = typeof s.status === 'string' ? s.status.toLowerCase() : '';
   return {
     id: s.id,
-    status: s.status,
+    status: normalizedStatus,
     createdAt: s.createdAt,
     restaurantName: s.restaurantName,
     restaurantAddress: s.restaurantAddress,
     category: cat,
     categoryLabel: cat,
     menuName: s.menuName,
-    menuPrice: s.menuPrice,
+    menuPrice: s.menuPriceText ?? s.menuPrice ?? '',
     rating: s.rating,
     photos: Array.isArray(s.photos) ? s.photos : [],
     decidedAt: s.decidedAt,
@@ -82,7 +100,7 @@ async function addPendingSubmissionApi(payload) {
           ? payload.category
           : categoryLabelToPlain(payload.category),
       menuName: payload.menuName,
-      menuPrice: payload.menuPrice ?? '',
+      menuPriceText: payload.menuPrice ?? '',
       rating: payload.rating,
       photos: payload.photos || [],
     }),
@@ -131,7 +149,8 @@ export async function approveSubmissionOnServer(id) {
     method: 'POST',
     headers: adminHeaders(),
   });
-  return res.ok;
+  if (res.ok) return { ok: true };
+  return { ok: false, reason: await readErrorMessage(res, '승인 처리에 실패했습니다.') };
 }
 
 export async function rejectSubmissionOnServer(id) {
@@ -139,12 +158,22 @@ export async function rejectSubmissionOnServer(id) {
     method: 'POST',
     headers: adminHeaders(),
   });
-  return res.ok;
+  if (res.ok) return { ok: true };
+  return { ok: false, reason: await readErrorMessage(res, '반려 처리에 실패했습니다.') };
 }
 
-export function removeSubmission(id) {
-  if (isApiConfigured()) return;
+export async function removeSubmission(id) {
+  if (isApiConfigured()) {
+    const res = await apiFetch(`/api/admin/restaurant-submissions/${id}`, {
+      method: 'DELETE',
+      headers: adminHeaders(),
+    });
+    if (!res.ok) return false;
+    await fetchSubmissionsFromApi();
+    return true;
+  }
   writeAll(readAll().filter((r) => r.id !== id));
+  return true;
 }
 
 /** '8,000원' / '7,000~9,000원' 등 → 숫자 배열 */

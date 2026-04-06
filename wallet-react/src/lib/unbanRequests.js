@@ -112,6 +112,12 @@ export async function fetchUnbanRequestsFromApi() {
     dispatch();
     return;
   }
-  apiUnbanCache = await res.json();
+  const rows = await res.json();
+  apiUnbanCache = Array.isArray(rows)
+    ? rows.map((r) => ({
+        ...r,
+        status: typeof r?.status === 'string' ? r.status.toLowerCase() : '',
+      }))
+    : [];
   dispatch();
 }

@@ -15,10 +15,13 @@ public class CommentReportEntity {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  @Column(name = "comment_id", nullable = false, length = 50)
-  private String commentId;
+  @Column(name = "reporter_user_id", nullable = false)
+  private Long reporterUserId;
 
-  @Column(name = "reason", length = 200)
+  @Column(name = "comment_id", nullable = false)
+  private Long commentId;
+
+  @Column(name = "reason", nullable = false, length = 500)
   private String reason;
 
   @Column(name = "status", nullable = false, length = 20)
@@ -27,8 +30,11 @@ public class CommentReportEntity {
   @Column(name = "created_at", nullable = false)
   private LocalDateTime createdAt;
 
-  @Column(name = "updated_at")
-  private LocalDateTime updatedAt;
+  @Column(name = "decided_at")
+  private LocalDateTime decidedAt;
+
+  @Column(name = "decided_by_admin_user_id")
+  private Long decidedByAdminUserId;
 
   protected CommentReportEntity() {}
 
@@ -36,11 +42,19 @@ public class CommentReportEntity {
     return id;
   }
 
-  public String getCommentId() {
+  public Long getReporterUserId() {
+    return reporterUserId;
+  }
+
+  public void setReporterUserId(Long reporterUserId) {
+    this.reporterUserId = reporterUserId;
+  }
+
+  public Long getCommentId() {
     return commentId;
   }
 
-  public void setCommentId(String commentId) {
+  public void setCommentId(Long commentId) {
     this.commentId = commentId;
   }
 
@@ -68,12 +82,20 @@ public class CommentReportEntity {
     this.createdAt = createdAt;
   }
 
-  public LocalDateTime getUpdatedAt() {
-    return updatedAt;
+  public LocalDateTime getDecidedAt() {
+    return decidedAt;
   }
 
-  public void setUpdatedAt(LocalDateTime updatedAt) {
-    this.updatedAt = updatedAt;
+  public void setDecidedAt(LocalDateTime decidedAt) {
+    this.decidedAt = decidedAt;
+  }
+
+  public Long getDecidedByAdminUserId() {
+    return decidedByAdminUserId;
+  }
+
+  public void setDecidedByAdminUserId(Long decidedByAdminUserId) {
+    this.decidedByAdminUserId = decidedByAdminUserId;
   }
 }
 

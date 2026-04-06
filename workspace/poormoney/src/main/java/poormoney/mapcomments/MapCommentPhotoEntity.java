@@ -18,11 +18,14 @@ public class MapCommentPhotoEntity {
   private Long id;
 
   @ManyToOne(optional = false)
-  @JoinColumn(name = "map_comment_id", nullable = false)
+  @JoinColumn(name = "comment_id", nullable = false)
   private MapCommentEntity mapComment;
 
-  @Column(name = "url", nullable = false, columnDefinition = "LONGTEXT")
-  private String url;
+  @Column(name = "photo_url", nullable = false, columnDefinition = "LONGTEXT")
+  private String photoUrl;
+
+  @Column(name = "sort_order", nullable = false)
+  private int sortOrder;
 
   @Column(name = "created_at", nullable = false)
   private LocalDateTime createdAt;
@@ -41,12 +44,20 @@ public class MapCommentPhotoEntity {
     this.mapComment = mapComment;
   }
 
-  public String getUrl() {
-    return url;
+  public String getPhotoUrl() {
+    return photoUrl;
   }
 
-  public void setUrl(String url) {
-    this.url = url;
+  public void setPhotoUrl(String photoUrl) {
+    this.photoUrl = photoUrl;
+  }
+
+  public int getSortOrder() {
+    return sortOrder;
+  }
+
+  public void setSortOrder(int sortOrder) {
+    this.sortOrder = sortOrder;
   }
 
   public LocalDateTime getCreatedAt() {

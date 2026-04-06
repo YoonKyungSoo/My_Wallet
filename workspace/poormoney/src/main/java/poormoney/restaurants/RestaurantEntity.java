@@ -6,6 +6,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -15,51 +16,37 @@ public class RestaurantEntity {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  @Column(name = "approved_id", nullable = false, unique = true, length = 80)
-  private String approvedId;
-
-  @Column(name = "name", nullable = false, unique = true, length = 80)
+  @Column(name = "name", nullable = false, length = 120)
   private String name;
 
-  @Column(name = "category", nullable = false, length = 40)
+  @Column(name = "category", nullable = false, length = 50)
   private String category;
 
-  @Column(name = "rating", nullable = false)
-  private double rating;
+  @Column(name = "base_rating", nullable = false, precision = 3, scale = 2)
+  private BigDecimal baseRating;
 
-  @Column(name = "address", nullable = false, length = 200)
+  @Column(name = "address", nullable = false, length = 300)
   private String address;
 
-  @Column(name = "phone", nullable = false, length = 40)
+  @Column(name = "phone", nullable = false, length = 50)
   private String phone;
 
-  @Column(name = "menu_name", nullable = false, length = 80)
+  @Column(name = "menu_name", nullable = false, length = 120)
   private String menuName;
 
-  @Column(name = "menu_price_label", nullable = false, length = 80)
+  @Column(name = "menu_price_label", nullable = false, length = 50)
   private String menuPriceLabel;
 
-  @Column(name = "menu_prices_json", columnDefinition = "LONGTEXT")
+  @Column(name = "menu_prices_json", nullable = false, columnDefinition = "LONGTEXT")
   private String menuPricesJson;
-
-  @Column(name = "recommend_count", nullable = false)
-  private int recommendCount;
 
   @Column(name = "created_at", nullable = false)
   private LocalDateTime createdAt;
 
-  protected RestaurantEntity() {}
+  public RestaurantEntity() {}
 
   public Long getId() {
     return id;
-  }
-
-  public String getApprovedId() {
-    return approvedId;
-  }
-
-  public void setApprovedId(String approvedId) {
-    this.approvedId = approvedId;
   }
 
   public String getName() {
@@ -78,12 +65,12 @@ public class RestaurantEntity {
     this.category = category;
   }
 
-  public double getRating() {
-    return rating;
+  public BigDecimal getBaseRating() {
+    return baseRating;
   }
 
-  public void setRating(double rating) {
-    this.rating = rating;
+  public void setBaseRating(BigDecimal baseRating) {
+    this.baseRating = baseRating;
   }
 
   public String getAddress() {
@@ -124,14 +111,6 @@ public class RestaurantEntity {
 
   public void setMenuPricesJson(String menuPricesJson) {
     this.menuPricesJson = menuPricesJson;
-  }
-
-  public int getRecommendCount() {
-    return recommendCount;
-  }
-
-  public void setRecommendCount(int recommendCount) {
-    this.recommendCount = recommendCount;
   }
 
   public LocalDateTime getCreatedAt() {

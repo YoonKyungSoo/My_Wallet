@@ -2,6 +2,7 @@ package poormoney.submissions;
 
 import java.util.List;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -32,6 +33,12 @@ public class AdminRestaurantSubmissionController {
   @PostMapping("/{id}/reject")
   public ResponseEntity<Void> reject(@PathVariable long id) {
     submissionService.reject(id);
+    return ResponseEntity.ok().build();
+  }
+
+  @DeleteMapping("/{id}")
+  public ResponseEntity<Void> delete(@PathVariable long id) {
+    submissionService.delete(id);
     return ResponseEntity.ok().build();
   }
 }

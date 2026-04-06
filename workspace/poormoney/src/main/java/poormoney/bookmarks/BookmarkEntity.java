@@ -1,6 +1,5 @@
 package poormoney.bookmarks;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -9,6 +8,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import poormoney.restaurants.RestaurantEntity;
 import poormoney.users.UserEntity;
 
 @Entity
@@ -22,10 +22,11 @@ public class BookmarkEntity {
   @JoinColumn(name = "user_id", nullable = false)
   private UserEntity user;
 
-  @Column(name = "restaurant_name", nullable = false, length = 80)
-  private String restaurantName;
+  @ManyToOne(optional = false)
+  @JoinColumn(name = "restaurant_id", nullable = false)
+  private RestaurantEntity restaurant;
 
-  @Column(name = "created_at", nullable = false)
+  @jakarta.persistence.Column(name = "created_at", nullable = false)
   private LocalDateTime createdAt;
 
   protected BookmarkEntity() {}
@@ -42,12 +43,12 @@ public class BookmarkEntity {
     this.user = user;
   }
 
-  public String getRestaurantName() {
-    return restaurantName;
+  public RestaurantEntity getRestaurant() {
+    return restaurant;
   }
 
-  public void setRestaurantName(String restaurantName) {
-    this.restaurantName = restaurantName;
+  public void setRestaurant(RestaurantEntity restaurant) {
+    this.restaurant = restaurant;
   }
 
   public LocalDateTime getCreatedAt() {

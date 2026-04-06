@@ -1,6 +1,8 @@
 package poormoney.submissions;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.math.BigDecimal;
+import java.security.Principal;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
@@ -13,6 +15,8 @@ import poormoney.restaurants.RestaurantPhotoEntity;
 import poormoney.restaurants.RestaurantPhotoRepository;
 import poormoney.restaurants.RestaurantRepository;
 import poormoney.submissions.dto.RestaurantSubmissionDtos;
+import poormoney.users.UserEntity;
+import poormoney.users.UserRepository;
 
 @Service
 public class RestaurantSubmissionService {
@@ -20,31 +24,40 @@ public class RestaurantSubmissionService {
   private final RestaurantRepository restaurantRepository;
   private final RestaurantPhotoRepository restaurantPhotoRepository;
   private final ObjectMapper objectMapper;
+  private final UserRepository userRepository;
 
   public RestaurantSubmissionService(
       RestaurantSubmissionRepository submissionRepository,
       RestaurantRepository restaurantRepository,
       RestaurantPhotoRepository restaurantPhotoRepository,
-      ObjectMapper objectMapper) {
+      ObjectMapper objectMapper,
+      UserRepository userRepository) {
     this.submissionRepository = submissionRepository;
     this.restaurantRepository = restaurantRepository;
     this.restaurantPhotoRepository = restaurantPhotoRepository;
     this.objectMapper = objectMapper;
+    this.userRepository = userRepository;
   }
 
   @Transactional
-  public RestaurantSubmissionDtos.AdminRow create(RestaurantSubmissionDtos.CreateRequest req) {
+  public RestaurantSubmissionDtos.AdminRow create(RestaurantSubmissionDtos.CreateRequest req, Principal principal) {
+    UserEntity me =
+        userRepository.findByLoginId(principal.getName()).orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
     RestaurantSubmissionEntity e = new RestaurantSubmissionEntity();
-    e.setStatus("pending");
+    e.setSubmitterUserId(me.getId());
+    e.setStatus("PENDING");
     e.setCreatedAt(LocalDateTime.now());
     e.setDecidedAt(null);
     e.setRestaurantName(req.restaurantName().trim());
     e.setRestaurantAddress(req.restaurantAddress().trim());
     e.setCategoryLabel(req.categoryLabel().trim());
     e.setMenuName(req.menuName().trim());
-    e.setMenuPrice(req.menuPrice().trim());
-    e.setRating(req.rating());
+    e.setMenuPriceText(req.menuPriceText().trim());
+    e.setRating(req.rating() == null ? 5 : req.rating());
     e.setPhotosJson(writeJson(req.photos()));
+    e.setApprovedRestaurantId(null);
+    e.setDecidedByAdminUserId(null);
+    e.setAdminMemo("");
     RestaurantSubmissionEntity saved = submissionRepository.save(e);
     return RestaurantSubmissionDtos.toRow(
         saved.getId(),
@@ -55,7 +68,7 @@ public class RestaurantSubmissionService {
         saved.getRestaurantAddress(),
         saved.getCategoryLabel(),
         saved.getMenuName(),
-        saved.getMenuPrice(),
+        saved.getMenuPriceText(),
         saved.getRating(),
         readPhotos(saved.getPhotosJson()));
   }
@@ -74,7 +87,7 @@ public class RestaurantSubmissionService {
                 e.getRestaurantAddress(),
                 e.getCategoryLabel(),
                 e.getMenuName(),
-                e.getMenuPrice(),
+                e.getMenuPriceText(),
                 e.getRating(),
                 readPhotos(e.getPhotosJson())))
         .toList();
@@ -84,30 +97,37 @@ public class RestaurantSubmissionService {
   public void approve(long submissionId) {
     RestaurantSubmissionEntity s =
         submissionRepository.findById(submissionId).orElseThrow(() -> new IllegalArgumentException("제보를 찾을 수 없습니다."));
-    s.setStatus("approved");
+    String name = s.getRestaurantName() == null ? "" : s.getRestaurantName().trim();
+    if (name.isEmpty()) {
+      throw new IllegalArgumentException("식당명이 비어 있습니다.");
+    }
+    if (restaurantRepository.findByName(name).isPresent()) {
+      throw new IllegalArgumentException("이미 같은 이름의 식당이 등록되어 있습니다.");
+    }
+    s.setStatus("APPROVED");
     s.setDecidedAt(LocalDateTime.now());
 
     RestaurantEntity r = new RestaurantEntity();
-    r.setApprovedId("db-0");
-    r.setName(s.getRestaurantName());
+    r.setName(name);
     r.setCategory(s.getCategoryLabel());
-    r.setRating(s.getRating() == null ? 0 : s.getRating());
+    r.setBaseRating(BigDecimal.valueOf(s.getRating()));
     r.setAddress(s.getRestaurantAddress());
     r.setPhone("");
     r.setMenuName(s.getMenuName());
-    r.setMenuPriceLabel(s.getMenuPrice());
-    r.setMenuPricesJson(writeJson(parseMenuPricesFromText(s.getMenuPrice())));
-    r.setRecommendCount(0);
+    r.setMenuPriceLabel(s.getMenuPriceText());
+    r.setMenuPricesJson(writeJson(parseMenuPricesFromText(s.getMenuPriceText())));
     r.setCreatedAt(LocalDateTime.now());
     RestaurantEntity saved = restaurantRepository.save(r);
-    saved.setApprovedId("db-" + saved.getId());
-    restaurantRepository.save(saved);
+    s.setApprovedRestaurantId(saved.getId());
+    submissionRepository.save(s);
 
+    int order = 0;
     for (String url : readPhotos(s.getPhotosJson())) {
       if (url == null || url.isBlank()) continue;
       RestaurantPhotoEntity p = new RestaurantPhotoEntity();
       p.setRestaurant(saved);
-      p.setUrl(url);
+      p.setPhotoUrl(url);
+      p.setSortOrder(order++);
       p.setCreatedAt(LocalDateTime.now());
       restaurantPhotoRepository.save(p);
     }
@@ -117,8 +137,14 @@ public class RestaurantSubmissionService {
   public void reject(long submissionId) {
     RestaurantSubmissionEntity s =
         submissionRepository.findById(submissionId).orElseThrow(() -> new IllegalArgumentException("제보를 찾을 수 없습니다."));
-    s.setStatus("rejected");
+    s.setStatus("REJECTED");
     s.setDecidedAt(LocalDateTime.now());
+  }
+
+  @Transactional
+  public void delete(long submissionId) {
+    if (!submissionRepository.existsById(submissionId)) return;
+    submissionRepository.deleteById(submissionId);
   }
 
   private String writeJson(Object v) {

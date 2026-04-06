@@ -24,6 +24,9 @@ public class SiteNoticeEntity {
   @Column(name = "updated_at", nullable = false)
   private LocalDateTime updatedAt;
 
+  @Column(name = "updated_by_admin_user_id", nullable = false)
+  private Long updatedByAdminUserId;
+
   protected SiteNoticeEntity() {}
 
   public Long getId() {
@@ -52,6 +55,14 @@ public class SiteNoticeEntity {
 
   public void setUpdatedAt(LocalDateTime updatedAt) {
     this.updatedAt = updatedAt;
+  }
+
+  public Long getUpdatedByAdminUserId() {
+    return updatedByAdminUserId;
+  }
+
+  public void setUpdatedByAdminUserId(Long updatedByAdminUserId) {
+    this.updatedByAdminUserId = updatedByAdminUserId;
   }
 }
 

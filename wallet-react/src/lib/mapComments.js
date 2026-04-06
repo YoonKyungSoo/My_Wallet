@@ -179,7 +179,27 @@ export function renameRestaurantCommentsKey(oldName, newName) {
 }
 
 export function removePhotoFromMapComment(restaurantName, commentId, photoUrl) {
-  if (isApiConfigured()) return;
+  if (isApiConfigured()) {
+    return (async () => {
+      const id = String(commentId || '').trim();
+      const url = String(photoUrl || '').trim();
+      if (!id || !url) return;
+      const headers = {
+        ...(Auth.isAdmin() ? adminHeaders() : loginHeaders()),
+        'Content-Type': 'application/json',
+      };
+      const res = await apiFetch(`/api/map-comments/${encodeURIComponent(id)}/photos/delete`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ photoUrl: url }),
+      });
+      if (!res.ok) {
+        const t = await res.text();
+        throw new Error(t || '사진 삭제에 실패했습니다.');
+      }
+      notifyChanged();
+    })();
+  }
   if (!restaurantName || !commentId || !photoUrl) return;
   const list = getMapCommentsForRestaurant(restaurantName).map((c) => {
     if (c.id !== commentId) return c;
@@ -190,4 +210,5 @@ export function removePhotoFromMapComment(restaurantName, commentId, photoUrl) {
     return next;
   });
   setMapCommentsForRestaurant(restaurantName, list);
+  return Promise.resolve();
 }

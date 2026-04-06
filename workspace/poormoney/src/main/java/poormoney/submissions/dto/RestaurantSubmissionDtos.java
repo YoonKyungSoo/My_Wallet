@@ -7,11 +7,11 @@ import java.util.List;
 
 public class RestaurantSubmissionDtos {
   public record CreateRequest(
-      @NotBlank @Size(max = 80) String restaurantName,
-      @NotBlank @Size(max = 200) String restaurantAddress,
-      @NotBlank @Size(max = 40) String categoryLabel,
-      @NotBlank @Size(max = 80) String menuName,
-      @NotBlank @Size(max = 80) String menuPrice,
+      @NotBlank @Size(max = 120) String restaurantName,
+      @NotBlank @Size(max = 300) String restaurantAddress,
+      @NotBlank @Size(max = 50) String categoryLabel,
+      @NotBlank @Size(max = 120) String menuName,
+      @NotBlank @Size(max = 50) String menuPriceText,
       Integer rating,
       List<String> photos) {}
 
@@ -25,7 +25,7 @@ public class RestaurantSubmissionDtos {
       String category,
       String categoryLabel,
       String menuName,
-      String menuPrice,
+      String menuPriceText,
       Integer rating,
       List<String> photos) {}
 
@@ -38,7 +38,7 @@ public class RestaurantSubmissionDtos {
       String restaurantAddress,
       String categoryLabel,
       String menuName,
-      String menuPrice,
+      String menuPriceText,
       Integer rating,
       List<String> photos) {
     String isoCreated = createdAt == null ? null : createdAt.toString();
@@ -53,7 +53,7 @@ public class RestaurantSubmissionDtos {
         categoryLabel,
         categoryLabel,
         menuName,
-        menuPrice,
+        menuPriceText,
         rating,
         photos);
   }

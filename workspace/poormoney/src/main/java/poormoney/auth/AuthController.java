@@ -24,20 +24,44 @@ public class AuthController {
   }
 
   @PostMapping("/signup")
-  public ResponseEntity<AuthDtos.AuthUserResponse> signup(
+  public ResponseEntity<AuthDtos.LoginResponse> signup(
       @Valid @RequestBody AuthDtos.SignupRequest req) {
-    return ResponseEntity.ok(authService.signup(req));
+    return ResponseEntity.ok(authService.signupAndLogin(req));
   }
 
   @PostMapping("/login")
   public ResponseEntity<AuthDtos.LoginResponse> login(
       @Valid @RequestBody AuthDtos.LoginRequest req) {
-    return ResponseEntity.ok(authService.login(req));
+    AuthDtos.LoginResponse res = authService.login(req);
+    if (res.reason() != null && !res.reason().isBlank()) {
+      return ResponseEntity.status(403).body(res);
+    }
+    return ResponseEntity.ok(res);
   }
 
   @GetMapping("/check-login-id")
   public ResponseEntity<AuthDtos.CheckLoginIdResponse> checkLoginId(@RequestParam String loginId) {
     return ResponseEntity.ok(authService.checkLoginId(loginId));
+  }
+
+  /**
+   * 프론트 호환: GET /api/auth/exists/login?loginId=...
+   * @return { exists: boolean }
+   */
+  @GetMapping("/exists/login")
+  public ResponseEntity<AuthDtos.ExistsResponse> existsLogin(@RequestParam String loginId) {
+    boolean exists = loginId != null && !loginId.isBlank() && userRepository.existsByLoginId(loginId);
+    return ResponseEntity.ok(new AuthDtos.ExistsResponse(exists));
+  }
+
+  /**
+   * 프론트 호환: GET /api/auth/exists/nickname?nickname=...
+   * @return { exists: boolean }
+   */
+  @GetMapping("/exists/nickname")
+  public ResponseEntity<AuthDtos.ExistsResponse> existsNickname(@RequestParam String nickname) {
+    boolean exists = nickname != null && !nickname.isBlank() && userRepository.existsByNickname(nickname);
+    return ResponseEntity.ok(new AuthDtos.ExistsResponse(exists));
   }
 
   @GetMapping("/me")

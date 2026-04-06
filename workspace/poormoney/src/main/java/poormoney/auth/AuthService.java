@@ -37,17 +37,32 @@ public class AuthService {
     if (userRepository.existsByLoginId(req.loginId())) {
       throw new IllegalArgumentException("이미 사용 중인 아이디입니다.");
     }
+    if (userRepository.existsByNickname(req.nickname())) {
+      throw new IllegalArgumentException("이미 사용 중인 닉네임입니다.");
+    }
     UserEntity u = new UserEntity();
     u.setLoginId(req.loginId());
     u.setPasswordHash(passwordEncoder.encode(req.password()));
     u.setNickname(req.nickname());
-    u.setLevelTitle("뉴비");
+    u.setBio("");
+    u.setProfileImageUrl("");
     u.setRole(UserRole.USER);
     u.setBanned(false);
-    u.setBanReason(null);
+    u.setBanReason("");
     u.setCreatedAt(LocalDateTime.now());
     UserEntity saved = userRepository.save(u);
     return toResponse(saved);
+  }
+
+  /**
+   * 프론트 호환: 회원가입 후 즉시 로그인 응답 형태로 반환 (accessToken 포함).
+   */
+  @Transactional
+  public AuthDtos.LoginResponse signupAndLogin(AuthDtos.SignupRequest req) {
+    AuthDtos.AuthUserResponse user = signup(req);
+    String role = user.role() == null ? "USER" : user.role();
+    String token = jwtService.createAccessToken(user.id(), user.loginId(), role);
+    return new AuthDtos.LoginResponse(token, token, user, null);
   }
 
   @Transactional(readOnly = true)
@@ -59,7 +74,7 @@ public class AuthService {
 
     if (u.isBanned()) {
       AuthDtos.AuthUserResponse userRes = toResponse(u);
-      return new AuthDtos.LoginResponse(null, userRes, u.getBanReason());
+      return new AuthDtos.LoginResponse(null, null, userRes, u.getBanReason());
     }
 
     Authentication auth =
@@ -72,7 +87,7 @@ public class AuthService {
 
     String role = u.getRole() == null ? "USER" : u.getRole().name();
     String token = jwtService.createAccessToken(u.getId(), u.getLoginId(), role);
-    return new AuthDtos.LoginResponse(token, toResponse(u), null);
+    return new AuthDtos.LoginResponse(token, token, toResponse(u), null);
   }
 
   @Transactional(readOnly = true)
@@ -87,7 +102,8 @@ public class AuthService {
         u.getId(),
         u.getLoginId(),
         u.getNickname(),
-        u.getLevelTitle(),
+        u.getBio(),
+        u.getProfileImageUrl(),
         role,
         u.isBanned(),
         u.getBanReason());

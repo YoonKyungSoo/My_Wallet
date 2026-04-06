@@ -21,13 +21,16 @@ public class RestaurantPhotoEntity {
   @JoinColumn(name = "restaurant_id", nullable = false)
   private RestaurantEntity restaurant;
 
-  @Column(name = "url", nullable = false, columnDefinition = "LONGTEXT")
-  private String url;
+  @Column(name = "photo_url", nullable = false, columnDefinition = "LONGTEXT")
+  private String photoUrl;
+
+  @Column(name = "sort_order", nullable = false)
+  private int sortOrder;
 
   @Column(name = "created_at", nullable = false)
   private LocalDateTime createdAt;
 
-  protected RestaurantPhotoEntity() {}
+  public RestaurantPhotoEntity() {}
 
   public Long getId() {
     return id;
@@ -41,12 +44,20 @@ public class RestaurantPhotoEntity {
     this.restaurant = restaurant;
   }
 
-  public String getUrl() {
-    return url;
+  public String getPhotoUrl() {
+    return photoUrl;
   }
 
-  public void setUrl(String url) {
-    this.url = url;
+  public void setPhotoUrl(String photoUrl) {
+    this.photoUrl = photoUrl;
+  }
+
+  public int getSortOrder() {
+    return sortOrder;
+  }
+
+  public void setSortOrder(int sortOrder) {
+    this.sortOrder = sortOrder;
   }
 
   public LocalDateTime getCreatedAt() {

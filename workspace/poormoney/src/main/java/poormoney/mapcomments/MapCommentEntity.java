@@ -9,6 +9,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import poormoney.restaurants.RestaurantEntity;
 import poormoney.users.UserEntity;
 
 @Entity
@@ -18,23 +19,24 @@ public class MapCommentEntity {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  @Column(name = "restaurant_name", nullable = false, length = 80)
-  private String restaurantName;
+  @ManyToOne(optional = false)
+  @JoinColumn(name = "restaurant_id", nullable = false)
+  private RestaurantEntity restaurant;
 
-  @ManyToOne(optional = true)
-  @JoinColumn(name = "user_id")
+  @ManyToOne(optional = false)
+  @JoinColumn(name = "user_id", nullable = false)
   private UserEntity user;
 
-  @Column(name = "nickname", nullable = false, length = 50)
-  private String nickname;
+  @Column(name = "nickname_snapshot", nullable = false, length = 50)
+  private String nicknameSnapshot;
 
-  @Column(name = "level_title", nullable = false, length = 50)
-  private String levelTitle;
+  @Column(name = "level_title_snapshot", nullable = false, length = 50)
+  private String levelTitleSnapshot;
 
-  @Column(name = "rating")
-  private Integer rating;
+  @Column(name = "rating", nullable = false)
+  private int rating;
 
-  @Column(name = "text", length = 1000)
+  @Column(name = "text", nullable = false, length = 2000)
   private String text;
 
   @Column(name = "created_at", nullable = false)
@@ -46,12 +48,12 @@ public class MapCommentEntity {
     return id;
   }
 
-  public String getRestaurantName() {
-    return restaurantName;
+  public RestaurantEntity getRestaurant() {
+    return restaurant;
   }
 
-  public void setRestaurantName(String restaurantName) {
-    this.restaurantName = restaurantName;
+  public void setRestaurant(RestaurantEntity restaurant) {
+    this.restaurant = restaurant;
   }
 
   public UserEntity getUser() {
@@ -62,27 +64,27 @@ public class MapCommentEntity {
     this.user = user;
   }
 
-  public String getNickname() {
-    return nickname;
+  public String getNicknameSnapshot() {
+    return nicknameSnapshot;
   }
 
-  public void setNickname(String nickname) {
-    this.nickname = nickname;
+  public void setNicknameSnapshot(String nicknameSnapshot) {
+    this.nicknameSnapshot = nicknameSnapshot;
   }
 
-  public String getLevelTitle() {
-    return levelTitle;
+  public String getLevelTitleSnapshot() {
+    return levelTitleSnapshot;
   }
 
-  public void setLevelTitle(String levelTitle) {
-    this.levelTitle = levelTitle;
+  public void setLevelTitleSnapshot(String levelTitleSnapshot) {
+    this.levelTitleSnapshot = levelTitleSnapshot;
   }
 
-  public Integer getRating() {
+  public int getRating() {
     return rating;
   }
 
-  public void setRating(Integer rating) {
+  public void setRating(int rating) {
     this.rating = rating;
   }
 

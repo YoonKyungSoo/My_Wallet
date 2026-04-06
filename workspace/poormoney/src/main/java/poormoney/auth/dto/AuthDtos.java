@@ -17,16 +17,21 @@ public class AuthDtos {
       long id,
       String loginId,
       String nickname,
-      String levelTitle,
+      String bio,
+      String profileImageUrl,
       String role,
       boolean banned,
       String banReason) {}
 
   public record LoginResponse(
       String token,
+      String accessToken,
       AuthUserResponse user,
       String reason) {}
 
   public record CheckLoginIdResponse(boolean available) {}
+
+  /** 프론트 호환: GET /api/auth/exists/* 응답 */
+  public record ExistsResponse(boolean exists) {}
 }
 

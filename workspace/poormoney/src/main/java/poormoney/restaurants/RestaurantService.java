@@ -2,6 +2,7 @@ package poormoney.restaurants;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -35,19 +36,19 @@ public class RestaurantService {
 
   private RestaurantPublicDto toDto(RestaurantEntity r) {
     List<String> photos =
-        restaurantPhotoRepository.findByRestaurantIdOrderByIdAsc(r.getId()).stream()
-            .map(RestaurantPhotoEntity::getUrl)
+        restaurantPhotoRepository.findByRestaurantIdOrderBySortOrderAscIdAsc(r.getId()).stream()
+            .map(RestaurantPhotoEntity::getPhotoUrl)
             .toList();
-    int reviewCount = mapCommentRepository.countByRestaurantName(r.getName());
+    int reviewCount = mapCommentRepository.countByRestaurant_Name(r.getName());
 
     return new RestaurantPublicDto(
         r.getId(),
-        r.getApprovedId(),
+        "db-" + r.getId(),
         r.getName(),
         r.getCategory(),
-        r.getRating(),
+        toDouble(r.getBaseRating()),
         r.getAddress(),
-        r.getRecommendCount(),
+        0,
         reviewCount,
         parseMenuPrices(r.getMenuPricesJson()),
         photos,
@@ -64,6 +65,10 @@ public class RestaurantService {
     } catch (Exception e) {
       return Collections.emptyList();
     }
+  }
+
+  private static Double toDouble(BigDecimal v) {
+    return v == null ? 0.0 : v.doubleValue();
   }
 }
 

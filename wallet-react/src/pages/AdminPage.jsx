@@ -76,6 +76,11 @@ const EDIT_CATEGORIES = [
   '기타',
 ];
 
+function formatMenuPriceLine(text) {
+  const nums = menuPriceTextToMenuPrices(text);
+  return nums.map((n) => `${n.toLocaleString('ko-KR')}원`).join(', ');
+}
+
 function OpenMapLink({ query, children }) {
   if (!query?.trim()) return null;
   return (
@@ -225,11 +230,12 @@ export default function AdminPage() {
       address: r.address || '',
       category: EDIT_CATEGORIES.includes(r.category) ? r.category : r.category || '기타',
       rating: String(r.rating ?? '4'),
-      menuPriceLine: Array.isArray(r.menuPrices) && r.menuPrices.length ? r.menuPrices.join(', ') : '5000',
+      menuPriceLine:
+        Array.isArray(r.menuPrices) && r.menuPrices.length
+          ? r.menuPrices.map((n) => `${Number(n).toLocaleString('ko-KR')}원`).join(', ')
+          : '5000',
       menuName: r.menuName || '',
       menuPriceLabel: r.menuPriceLabel || '',
-      photosLines: Array.isArray(r.photos) ? r.photos.join('\n') : '',
-      phone: r.phone || '',
     });
     setEditOpen(true);
   };
@@ -237,10 +243,6 @@ export default function AdminPage() {
   const saveEditApproved = async () => {
     if (!editForm) return;
     const menuPrices = menuPriceTextToMenuPrices(editForm.menuPriceLine);
-    const photos = editForm.photosLines
-      .split(/\n/)
-      .map((s) => s.trim())
-      .filter(Boolean);
     const patch = {
       name: editForm.name.trim(),
       address: editForm.address.trim(),
@@ -249,8 +251,6 @@ export default function AdminPage() {
       menuPrices,
       menuName: editForm.menuName?.trim() || '',
       menuPriceLabel: editForm.menuPriceLabel?.trim() || '',
-      photos,
-      phone: editForm.phone.trim(),
     };
     const res = isApiConfigured()
       ? await updateRestaurantOnServer(editForm.approvedId, patch)
@@ -293,9 +293,9 @@ export default function AdminPage() {
       return;
     }
     if (isApiConfigured()) {
-      const ok = await approveSubmissionOnServer(sub.id);
-      if (!ok) {
-        alert('승인 처리에 실패했습니다. 다시 시도해 주세요.');
+      const res = await approveSubmissionOnServer(sub.id);
+      if (!res.ok) {
+        alert(res.reason || '승인 처리에 실패했습니다. 다시 시도해 주세요.');
         return;
       }
       await fetchRestaurantsFromApi();
@@ -328,9 +328,9 @@ export default function AdminPage() {
   const rejectSubmission = async (sub) => {
     if (!window.confirm(`「${sub.restaurantName}」제보를 반려할까요?`)) return;
     if (isApiConfigured()) {
-      const ok = await rejectSubmissionOnServer(sub.id);
-      if (!ok) {
-        alert('반려 처리에 실패했습니다. 다시 시도해 주세요.');
+      const res = await rejectSubmissionOnServer(sub.id);
+      if (!res.ok) {
+        alert(res.reason || '반려 처리에 실패했습니다. 다시 시도해 주세요.');
         return;
       }
       await fetchSubmissionsFromApi();
@@ -484,9 +484,13 @@ export default function AdminPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => {
+                      onClick={async () => {
                         if (!window.confirm('이 제보를 목록에서 완전히 삭제할까요?')) return;
-                        removeSubmission(sub.id);
+                        const ok = await removeSubmission(sub.id);
+                        if (!ok) {
+                          alert('제보 삭제에 실패했습니다.');
+                          return;
+                        }
                         refresh();
                       }}
                       className="px-4 py-2 rounded-xl border-2 border-red-200 text-red-700 text-sm font-extrabold hover:bg-red-50"
@@ -581,9 +585,13 @@ export default function AdminPage() {
                       ) : null}
                       <button
                         type="button"
-                        onClick={() => {
+                        onClick={async () => {
                           if (!window.confirm('이 제보 기록을 삭제할까요?')) return;
-                          removeSubmission(sub.id);
+                          const ok = await removeSubmission(sub.id);
+                          if (!ok) {
+                            alert('제보 삭제에 실패했습니다.');
+                            return;
+                          }
                           refresh();
                         }}
                         className="px-3 py-1.5 rounded-lg border border-red-200 text-red-700 text-xs font-extrabold hover:bg-red-50"
@@ -1013,7 +1021,13 @@ export default function AdminPage() {
                       type="button"
                       className="px-2 py-1.5 rounded-lg bg-amber-100 text-xs font-extrabold text-amber-900"
                       onClick={async () => {
-                        const res = await Auth.adminSetUserBanned(u.id, !u.banned);
+                        let reason = '';
+                        if (!u.banned) {
+                          const input = window.prompt('정지 사유를 입력해 주세요. (비워두면 기본 문구 적용)');
+                          if (input === null) return;
+                          reason = input.trim();
+                        }
+                        const res = await Auth.adminSetUserBanned(u.id, !u.banned, reason);
                         if (!res.ok) alert(res.reason);
                         else refresh();
                       }}
@@ -1089,6 +1103,7 @@ export default function AdminPage() {
                 className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold"
                 value={editForm.menuPriceLine}
                 onChange={(e) => setEditForm((f) => ({ ...f, menuPriceLine: e.target.value }))}
+                onBlur={(e) => setEditForm((f) => ({ ...f, menuPriceLine: formatMenuPriceLine(e.target.value) }))}
               />
             </label>
             <label className="block text-xs font-bold text-slate-500">
@@ -1105,23 +1120,6 @@ export default function AdminPage() {
                 className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold"
                 value={editForm.menuPriceLabel}
                 onChange={(e) => setEditForm((f) => ({ ...f, menuPriceLabel: e.target.value }))}
-              />
-            </label>
-            <label className="block text-xs font-bold text-slate-500">
-              전화
-              <input
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold"
-                value={editForm.phone}
-                onChange={(e) => setEditForm((f) => ({ ...f, phone: e.target.value }))}
-              />
-            </label>
-            <label className="block text-xs font-bold text-slate-500">
-              사진 URL (줄바꿈으로 구분)
-              <textarea
-                rows={4}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-mono text-xs"
-                value={editForm.photosLines}
-                onChange={(e) => setEditForm((f) => ({ ...f, photosLines: e.target.value }))}
               />
             </label>
             <div className="flex gap-2 justify-end pt-2">

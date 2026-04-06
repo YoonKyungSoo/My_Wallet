@@ -49,11 +49,13 @@ public class AppSecurityConfig {
         .authorizeHttpRequests(auth -> auth
             .requestMatchers("/api/health").permitAll()
             .requestMatchers("/api/auth/**").permitAll()
-            .requestMatchers("/api/site-notice").permitAll()
+            .requestMatchers(HttpMethod.GET, "/api/site-notice").permitAll()
+            .requestMatchers("/api/site-notice").hasRole("ADMIN")
             .requestMatchers("/api/unban-requests/public").permitAll()
             .requestMatchers(HttpMethod.GET, "/api/restaurants/**").permitAll()
             .requestMatchers(HttpMethod.GET, "/api/map-comments").permitAll()
             .requestMatchers(HttpMethod.POST, "/api/restaurant-submissions").authenticated()
+            .requestMatchers("/api/comment-reports/admin/**").hasRole("ADMIN")
             .requestMatchers("/api/admin/**").hasRole("ADMIN")
             .anyRequest().authenticated())
         .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

@@ -19,6 +19,7 @@ import poormoney.mapcomments.dto.MapCommentDtos;
 @RequestMapping("/api/map-comments")
 public class MapCommentController {
   private final MapCommentService mapCommentService;
+  record DeletePhotoRequest(String photoUrl) {}
 
   public MapCommentController(MapCommentService mapCommentService) {
     this.mapCommentService = mapCommentService;
@@ -44,6 +45,40 @@ public class MapCommentController {
             && authentication.getAuthorities().stream()
                 .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
     mapCommentService.deleteById(id, principal, isAdmin);
+    return ResponseEntity.ok().build();
+  }
+
+  @DeleteMapping("/{id}/photos")
+  public ResponseEntity<Void> deletePhoto(
+      @PathVariable long id,
+      @RequestParam(required = false) String photoUrl,
+      @RequestBody(required = false) DeletePhotoRequest body,
+      Principal principal,
+      Authentication authentication) {
+    boolean isAdmin =
+        authentication != null
+            && authentication.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+    String target = photoUrl;
+    if ((target == null || target.isBlank()) && body != null) {
+      target = body.photoUrl();
+    }
+    mapCommentService.deletePhotoByCommentIdAndUrl(id, target, principal, isAdmin);
+    return ResponseEntity.ok().build();
+  }
+
+  @PostMapping("/{id}/photos/delete")
+  public ResponseEntity<Void> deletePhotoPost(
+      @PathVariable long id,
+      @RequestBody(required = false) DeletePhotoRequest body,
+      Principal principal,
+      Authentication authentication) {
+    boolean isAdmin =
+        authentication != null
+            && authentication.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+    String target = body == null ? null : body.photoUrl();
+    mapCommentService.deletePhotoByCommentIdAndUrl(id, target, principal, isAdmin);
     return ResponseEntity.ok().build();
   }
 }

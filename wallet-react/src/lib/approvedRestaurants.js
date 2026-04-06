@@ -1,9 +1,5 @@
 import { removeBookmarkByRestaurantName, renameRestaurantInBookmarks } from './bookmarks';
 import { clearMapCommentsForRestaurant, renameRestaurantCommentsKey } from './mapComments';
-import {
-  clearHiddenPhotosForRestaurant,
-  renameHiddenPhotoRestaurantKey,
-} from './restaurantGallery';
 import { clearRestaurantDetailOverride } from './restaurantDetailOverrides';
 
 const KEY = 'wallet_approved_restaurants';
@@ -53,7 +49,6 @@ export function removeApprovedRestaurant(approvedId) {
   if (name) {
     clearMapCommentsForRestaurant(name);
     removeBookmarkByRestaurantName(name);
-    clearHiddenPhotosForRestaurant(name);
     clearRestaurantDetailOverride(name);
   }
 }
@@ -82,7 +77,6 @@ export function updateApprovedRestaurantFull(approvedId, patch) {
     if (exists) return { ok: false, reason: '이미 같은 이름의 승인 식당이 있습니다.' };
     renameRestaurantCommentsKey(prev.name, nextName);
     renameRestaurantInBookmarks(prev.name, nextName);
-    renameHiddenPhotoRestaurantKey(prev.name, nextName);
   }
   const nextRow = {
     ...prev,

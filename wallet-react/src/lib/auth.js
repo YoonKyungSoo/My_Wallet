@@ -95,10 +95,14 @@ export async function parseApiErrorMessage(res) {
   try {
     const text = await res.clone().text();
     if (!text) return '';
-    const j = JSON.parse(text);
-    if (typeof j.message === 'string' && j.message) return j.message;
-    if (typeof j.error === 'string' && j.error) return j.error;
-    return '';
+    try {
+      const j = JSON.parse(text);
+      if (typeof j.message === 'string' && j.message) return j.message;
+      if (typeof j.error === 'string' && j.error) return j.error;
+    } catch {
+      /* non-json response */
+    }
+    return text.trim();
   } catch {
     return '';
   }
@@ -332,7 +336,15 @@ export const Auth = {
       return { ok: true };
     }
     if (res.status === 403) {
-      const msg = await parseApiErrorMessage(res);
+      let msg = await parseApiErrorMessage(res);
+      if (!msg) {
+        try {
+          const j = await res.clone().json();
+          if (typeof j?.reason === 'string' && j.reason) msg = j.reason;
+        } catch {
+          /* ignore */
+        }
+      }
       return {
         ok: false,
         code: 'banned',
@@ -341,7 +353,17 @@ export const Auth = {
       };
     }
     const msg = await parseApiErrorMessage(res);
-    return { ok: false, reason: msg || '아이디 또는 비밀번호가 올바르지 않습니다.' };
+    const normalized = (msg || '').toLowerCase();
+    const isInvalidCredential =
+      res.status === 401 ||
+      res.status === 400 ||
+      normalized.includes('bad credentials') ||
+      normalized.includes('자격 증명에 실패하였습니다') ||
+      normalized.includes('invalid credentials');
+    return {
+      ok: false,
+      reason: isInvalidCredential ? '아이디 또는 비밀번호가 올바르지 않습니다.' : msg || '로그인에 실패했습니다.',
+    };
   },
 
   /**
@@ -506,7 +528,7 @@ export const Auth = {
   },
 
   /** @returns {Promise<{ ok: boolean, reason?: string }>} */
-  async adminSetUserBanned(targetId, banned) {
+  async adminSetUserBanned(targetId, banned, reason = '') {
     if (isApiSession()) {
       const id = targetId?.trim();
       if (!id) return { ok: false, reason: '아이디가 없습니다.' };
@@ -515,7 +537,7 @@ export const Auth = {
         const res = await apiFetch(`/api/admin/users/${encodeURIComponent(id)}/banned`, {
           method: 'PATCH',
           headers: { ...adminHeaders(), 'Content-Type': 'application/json' },
-          body: JSON.stringify({ banned: Boolean(banned) }),
+          body: JSON.stringify({ banned: Boolean(banned), reason }),
         });
         if (!res.ok) {
           return { ok: false, reason: (await parseApiErrorMessage(res)) || '처리에 실패했습니다.' };
@@ -561,12 +583,23 @@ export const Auth = {
         if (!res.ok) {
           return { ok: false, reason: (await parseApiErrorMessage(res)) || '처리에 실패했습니다.' };
         }
-        const u = await res.json();
+        let u = null;
+        try {
+          const text = await res.text();
+          if (text) u = JSON.parse(text);
+        } catch {
+          u = null;
+        }
         const me = this.getSession();
         if (me?.id === id) {
           const raw = readRawSession();
           if (raw?.source === 'api') {
-            const nextRole = u.role === 'admin' || u.role === 'ADMIN' ? 'admin' : 'user';
+            const nextRole =
+              u && (u.role === 'admin' || u.role === 'ADMIN')
+                ? 'admin'
+                : role === 'admin'
+                  ? 'admin'
+                  : 'user';
             localStorage.setItem(
               SESSION_KEY,
               JSON.stringify({

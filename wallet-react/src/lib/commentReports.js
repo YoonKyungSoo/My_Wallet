@@ -115,8 +115,8 @@ export async function fetchCommentReportsFromApi() {
     ? rows.map((r) => ({
         ...r,
         commentId: r.commentId,
-        commentIndex: 0,
-        commentPreview: '',
+        commentIndex: typeof r.commentIndex === 'number' ? r.commentIndex : 0,
+        commentPreview: r.commentPreview || '',
       }))
     : [];
   notifyAdminInboxChanged();

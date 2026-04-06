@@ -25,8 +25,6 @@ import {
   updateApprovedRestaurantPhotos,
 } from '../lib/approvedRestaurants';
 import {
-  fetchHiddenPhotosForRestaurant,
-  hideRestaurantDisplayPhoto,
   mergeRestaurantGalleryPhotos,
 } from '../lib/restaurantGallery';
 import { menuPriceTextToMenuPrices } from '../lib/pendingRestaurantSubmissions';
@@ -68,6 +66,11 @@ const EDIT_CATEGORIES = [
   '편의점/마트',
   '기타',
 ];
+
+function formatMenuPriceLine(text) {
+  const nums = menuPriceTextToMenuPrices(text);
+  return nums.map((n) => `${n.toLocaleString('ko-KR')}원`).join(', ');
+}
 
 export default function DetailPage() {
   const navigate = useNavigate();
@@ -111,6 +114,29 @@ export default function DetailPage() {
     }
     return EMPTY_RESTAURANT;
   }, [queryName, saved, registryTick]);
+  const [detailBootLoading, setDetailBootLoading] = useState(() => isApiConfigured() && Boolean(queryName));
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!isApiConfigured() || !queryName) {
+      setDetailBootLoading(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+    setDetailBootLoading(true);
+    void fetchRestaurantsFromApi()
+      .then(() => {
+        if (cancelled) return;
+        setRegistryTick((t) => t + 1);
+      })
+      .finally(() => {
+        if (!cancelled) setDetailBootLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [queryName]);
 
   const session = Auth.getSession();
   const isLoggedIn = Auth.isLoggedIn();
@@ -227,16 +253,9 @@ export default function DetailPage() {
   const isAdmin = Auth.isAdmin();
   const remoteComments = isApiConfigured() && isApiSession();
 
-  const [hiddenPhotoTick, setHiddenPhotoTick] = useState(0);
-  useEffect(() => {
-    const onHidden = () => setHiddenPhotoTick((t) => t + 1);
-    window.addEventListener('wallet-hidden-photos-changed', onHidden);
-    return () => window.removeEventListener('wallet-hidden-photos-changed', onHidden);
-  }, []);
-
   const allGalleryPhotos = useMemo(
     () => mergeRestaurantGalleryPhotos(restaurant, comments),
-    [restaurant.name, restaurant.photos, comments, hiddenPhotoTick],
+    [restaurant.name, restaurant.photos, comments],
   );
 
   const hasAnyPhoto = allGalleryPhotos.length > 0;
@@ -267,10 +286,51 @@ export default function DetailPage() {
       } else {
         updateApprovedRestaurantPhotos(restaurant.approvedId, next);
       }
-    } else {
-      hideRestaurantDisplayPhoto(restaurant.name, heroSrc);
     }
     setRegistryTick((t) => t + 1);
+  };
+
+  const removeGalleryPhotoAsAdmin = async (src) => {
+    if (!isAdmin || !src) return;
+    if (!window.confirm('이 사진을 삭제할까요?')) return;
+    try {
+      if ((restaurant.photos || []).includes(src)) {
+        if (!restaurant.approvedId) {
+          alert('승인 식당 사진만 서버에서 삭제할 수 있습니다.');
+          return;
+        }
+        const next = (restaurant.photos || []).filter((u) => u !== src);
+        if (isApiConfigured()) {
+          const r = await updateRestaurantOnServer(restaurant.approvedId, { photos: next });
+          if (!r.ok) {
+            alert(r.reason || '사진 삭제에 실패했습니다.');
+            return;
+          }
+          await fetchRestaurantsFromApi();
+          window.dispatchEvent(new Event(RESTAURANTS_CHANGED));
+        } else {
+          updateApprovedRestaurantPhotos(restaurant.approvedId, next);
+        }
+        setRegistryTick((t) => t + 1);
+        return;
+      }
+
+      const ownerComment = comments.find((c) => Array.isArray(c?.photos) && c.photos.includes(src));
+      if (!ownerComment?.id) {
+        alert('사진 원본 댓글을 찾지 못했습니다.');
+        return;
+      }
+      await removePhotoFromMapComment(restaurant.name, ownerComment.id, src);
+      if (remoteComments) {
+        setComments(await fetchMapCommentsForRestaurant(restaurant.name));
+      } else {
+        setComments(getMapCommentsForRestaurant(restaurant.name));
+      }
+      invalidateMapCommentsForRestaurant(restaurant.name);
+      window.dispatchEvent(new Event(MAP_COMMENTS_CHANGED));
+    } catch (e) {
+      alert(e?.message || '사진 삭제에 실패했습니다.');
+    }
   };
 
   const [adminEditOpen, setAdminEditOpen] = useState(false);
@@ -279,7 +339,7 @@ export default function DetailPage() {
   const openAdminDetailEdit = () => {
     const menuLine =
       Array.isArray(restaurant.menuPrices) && restaurant.menuPrices.length
-        ? restaurant.menuPrices.join(', ')
+        ? restaurant.menuPrices.map((n) => `${Number(n).toLocaleString('ko-KR')}원`).join(', ')
         : '5000';
     setAdminEditForm({
       isApproved: Boolean(restaurant.approvedId),
@@ -291,8 +351,7 @@ export default function DetailPage() {
         : restaurant.category || '기타',
       rating: String(restaurant.rating ?? '4'),
       menuPriceLine: menuLine,
-      photosLines: Array.isArray(restaurant.photos) ? restaurant.photos.join('\n') : '',
-      phone: restaurant.phone || '',
+      menuName: restaurant.menuName || '',
     });
     setAdminEditOpen(true);
   };
@@ -300,10 +359,6 @@ export default function DetailPage() {
   const saveAdminDetailEdit = async () => {
     if (!adminEditForm) return;
     const menuPrices = menuPriceTextToMenuPrices(adminEditForm.menuPriceLine);
-    const photos = adminEditForm.photosLines
-      .split(/\n/)
-      .map((s) => s.trim())
-      .filter(Boolean);
 
     if (adminEditForm.isApproved && adminEditForm.approvedId) {
       const patch = {
@@ -312,8 +367,8 @@ export default function DetailPage() {
         category: adminEditForm.category,
         rating: adminEditForm.rating,
         menuPrices,
-        photos,
-        phone: adminEditForm.phone.trim(),
+        menuName: adminEditForm.menuName?.trim() || '',
+        menuPriceLabel: averagePriceRange(menuPrices),
       };
       const res = isApiConfigured()
         ? await updateRestaurantOnServer(adminEditForm.approvedId, patch)
@@ -343,8 +398,8 @@ export default function DetailPage() {
       category: adminEditForm.category,
       rating: adminEditForm.rating,
       menuPrices,
-      photos,
-      phone: adminEditForm.phone.trim(),
+      menuName: adminEditForm.menuName?.trim() || '',
+      menuPriceLabel: averagePriceRange(menuPrices),
     });
     setAdminEditOpen(false);
     setAdminEditForm(null);
@@ -379,10 +434,6 @@ export default function DetailPage() {
 
   const maxGalleryWindowPage = Math.max(0, Math.ceil(allGalleryPhotos.length / GALLERY_THUMB_WINDOW) - 1);
 
-  useEffect(() => {
-    if (!isApiConfigured()) return;
-    void fetchHiddenPhotosForRestaurant(restaurant.name).then(() => setHiddenPhotoTick((t) => t + 1));
-  }, [restaurant.name]);
   const galleryThumbSlice = allGalleryPhotos.slice(
     galleryWindowPage * GALLERY_THUMB_WINDOW,
     galleryWindowPage * GALLERY_THUMB_WINDOW + GALLERY_THUMB_WINDOW,
@@ -403,7 +454,7 @@ export default function DetailPage() {
     return { value: v, sub: `리뷰 ${nums.length}건 기준` };
   }, [comments, restaurant.rating]);
 
-  const priceLabel = menuPrice || averagePriceRange(restaurant.menuPrices);
+  const priceLabel = averagePriceRange(restaurant.menuPrices) || menuPrice;
 
   useEffect(() => {
     const scrollToCommentOrReviews = () => {
@@ -461,6 +512,9 @@ export default function DetailPage() {
   const [detailCoords, setDetailCoords] = useState(null);
 
   useEffect(() => {
+    if (detailBootLoading || restaurant.__empty) {
+      return;
+    }
     if (!KAKAO_MAP_KEY) {
       setMapDetailStatus('missing-key');
       return;
@@ -476,20 +530,31 @@ export default function DetailPage() {
 
     setDetailCoords(null);
     setMapDetailStatus('loading');
+    const failSafe = setTimeout(() => {
+      if (!cancelled) setMapDetailStatus('error');
+    }, 10000);
 
     const run = () => {
       if (cancelled || !window.kakao?.maps) return;
       window.kakao.maps.load(() => {
         if (cancelled) return;
         const container = document.getElementById('kakao-map-detail');
-        if (!container) return;
+        if (!container) {
+          setMapDetailStatus('error');
+          return;
+        }
 
+        if (!window.kakao?.maps?.services?.Geocoder) {
+          setMapDetailStatus('error');
+          return;
+        }
         const geocoder = new window.kakao.maps.services.Geocoder();
         geocoder.addressSearch(addr, (result, status) => {
           if (cancelled) return;
           if (status !== window.kakao.maps.services.Status.OK || !result?.length) {
             setMapDetailStatus('geocode-fail');
             setDetailCoords(null);
+            clearTimeout(failSafe);
             return;
           }
           const lat = Number(result[0].y);
@@ -509,6 +574,7 @@ export default function DetailPage() {
           detailMapRef.current = map;
           detailMarkerRef.current = marker;
           setMapDetailStatus('ready');
+          clearTimeout(failSafe);
 
           requestAnimationFrame(() => {
             try {
@@ -528,6 +594,7 @@ export default function DetailPage() {
 
     return () => {
       cancelled = true;
+      clearTimeout(failSafe);
       cleanupScript?.();
       if (detailMarkerRef.current) {
         detailMarkerRef.current.setMap(null);
@@ -537,7 +604,7 @@ export default function DetailPage() {
       const el = document.getElementById('kakao-map-detail');
       if (el) el.innerHTML = '';
     };
-  }, [restaurant.address, restaurant.name]);
+  }, [detailBootLoading, restaurant.__empty, restaurant.address, restaurant.name]);
 
   useEffect(() => {
     const map = detailMapRef.current;
@@ -597,10 +664,19 @@ export default function DetailPage() {
           levelTitle: row?.levelTitle || myLevelTitle,
         };
         setComments((prev) => [...prev, withUser]);
-        // API 모드: 활동 로그·리뷰수·뱃지는 서버에서 처리 (중복 이벤트 방지)
+        const historyText = text || (photosCopy?.length ? `사진 ${photosCopy.length}장` : '');
+        void pushActivityHistory({
+          type: 'comment',
+          restaurantName: restaurant.name,
+          text: historyText,
+          rating: draftRating,
+          nickname: myNickname,
+          levelTitle: myLevelTitle,
+          photoCount: photosCopy?.length || 0,
+        });
         setDraftText('');
         setPendingPhotos([]);
-        window.dispatchEvent(new Event(MAP_COMMENTS_CHANGED));
+        invalidateMapCommentsForRestaurant(restaurant.name);
       } catch (e) {
         alert(e?.message || '리뷰 등록에 실패했습니다.');
       }
@@ -668,6 +744,16 @@ export default function DetailPage() {
       w.document.close();
     }
   };
+
+  if (detailBootLoading) {
+    return (
+      <Layout>
+        <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-20 text-center">
+          <p className="text-lg font-extrabold text-slate-900">식당 정보를 불러오는 중...</p>
+        </main>
+      </Layout>
+    );
+  }
 
   if (restaurant.__empty) {
     return (
@@ -804,19 +890,36 @@ export default function DetailPage() {
                     {galleryThumbSlice.map((src, i) => {
                       const globalIdx = galleryWindowPage * GALLERY_THUMB_WINDOW + i;
                       return (
-                        <button
+                        <div
                           key={`gallery-thumb-${globalIdx}`}
-                          type="button"
-                          className={`relative aspect-square rounded-2xl overflow-hidden border shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-400 ${
+                          className={`relative aspect-square rounded-2xl overflow-hidden border shadow-sm ${
                             globalIdx === photoIndex ? 'ring-2 ring-orange-400 border-orange-300' : 'border-orange-100'
                           }`}
-                          onClick={() => {
-                            setPhotoIndex(globalIdx);
-                            document.getElementById('detail-hero-top')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                          }}
                         >
-                          <img src={src} alt="" className="w-full h-full object-cover" />
-                        </button>
+                          <button
+                            type="button"
+                            className="absolute inset-0 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                            onClick={() => {
+                              setPhotoIndex(globalIdx);
+                              document.getElementById('detail-hero-top')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }}
+                          >
+                            <img src={src} alt="" className="w-full h-full object-cover" />
+                          </button>
+                          {isAdmin ? (
+                            <button
+                              type="button"
+                              className="absolute top-1 right-1 z-10 w-6 h-6 rounded-full bg-red-600 text-white text-xs font-extrabold leading-none hover:bg-red-700"
+                              aria-label="사진 삭제"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                void removeGalleryPhotoAsAdmin(src);
+                              }}
+                            >
+                              ×
+                            </button>
+                          ) : null}
+                        </div>
                       );
                     })}
                   </div>
@@ -1036,8 +1139,14 @@ export default function DetailPage() {
                 ) : (
                   comments.map((c, idx) => {
                     const myId = session?.id || '';
-                    const cUserId = c?.userId || c?.loginId || '';
-                    const isMine = Boolean(isLoggedIn && myId && cUserId && String(cUserId) === String(myId));
+                    const cLoginId = c?.loginId ? String(c.loginId) : '';
+                    const cUserId = c?.userId ? String(c.userId) : '';
+                    // API 응답에 userId(Long)와 loginId(String)가 함께 올 수 있으므로 loginId를 우선 비교
+                    const isMine = Boolean(
+                      isLoggedIn &&
+                        myId &&
+                        ((cLoginId && cLoginId === String(myId)) || (!cLoginId && cUserId && cUserId === String(myId))),
+                    );
                     return (
                       <div
                         key={c.id || `${idx}-${c.nickname}`}
@@ -1172,15 +1281,26 @@ export default function DetailPage() {
                                 >
                                   <img src={src} alt="" className="h-16 w-16 object-cover rounded-xl border border-slate-200" />
                                 </button>
-                                {isAdmin && !remoteComments ? (
+                                {isAdmin ? (
                                   <button
                                     type="button"
                                     className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-600 text-white text-[10px] font-bold leading-none"
                                     aria-label="첨부 삭제"
                                     onClick={() => {
                                       if (!c.id) return;
-                                      removePhotoFromMapComment(restaurant.name, c.id, src);
-                                      setComments(getMapCommentsForRestaurant(restaurant.name));
+                                      void (async () => {
+                                        try {
+                                          await removePhotoFromMapComment(restaurant.name, c.id, src);
+                                          if (remoteComments) {
+                                            setComments(await fetchMapCommentsForRestaurant(restaurant.name));
+                                          } else {
+                                            setComments(getMapCommentsForRestaurant(restaurant.name));
+                                          }
+                                          window.dispatchEvent(new Event(MAP_COMMENTS_CHANGED));
+                                        } catch (e) {
+                                          alert(e?.message || '첨부 삭제에 실패했습니다.');
+                                        }
+                                      })();
                                     }}
                                   >
                                     ×
@@ -1295,23 +1415,19 @@ export default function DetailPage() {
                 className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold"
                 value={adminEditForm.menuPriceLine}
                 onChange={(e) => setAdminEditForm((f) => (f ? { ...f, menuPriceLine: e.target.value } : f))}
+                onBlur={(e) =>
+                  setAdminEditForm((f) =>
+                    f ? { ...f, menuPriceLine: formatMenuPriceLine(e.target.value) } : f,
+                  )
+                }
               />
             </label>
             <label className="block text-xs font-bold text-slate-500">
-              전화
+              제보 메뉴
               <input
                 className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold"
-                value={adminEditForm.phone}
-                onChange={(e) => setAdminEditForm((f) => (f ? { ...f, phone: e.target.value } : f))}
-              />
-            </label>
-            <label className="block text-xs font-bold text-slate-500">
-              사진 URL (줄바꿈으로 구분)
-              <textarea
-                rows={4}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-mono"
-                value={adminEditForm.photosLines}
-                onChange={(e) => setAdminEditForm((f) => (f ? { ...f, photosLines: e.target.value } : f))}
+                value={adminEditForm.menuName}
+                onChange={(e) => setAdminEditForm((f) => (f ? { ...f, menuName: e.target.value } : f))}
               />
             </label>
             <div className="flex flex-wrap gap-2 justify-end pt-2">

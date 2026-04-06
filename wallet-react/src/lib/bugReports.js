@@ -85,6 +85,18 @@ export async function fetchBugReportsFromApi() {
     notifyAdminInboxChanged();
     return;
   }
-  apiBugCache = await res.json();
+  const rows = await res.json();
+  apiBugCache = Array.isArray(rows)
+    ? rows.map((r) => ({
+        id: r.id,
+        status: r.status,
+        createdAt: r.createdAt,
+        updatedAt: r.updatedAt,
+        restaurantName: r.payload?.restaurantName || '',
+        restaurantAddress: r.payload?.restaurantAddress || '',
+        bugDescription: r.payload?.body || '',
+        photos: Array.isArray(r.payload?.photos) ? r.payload.photos : [],
+      }))
+    : [];
   notifyAdminInboxChanged();
 }

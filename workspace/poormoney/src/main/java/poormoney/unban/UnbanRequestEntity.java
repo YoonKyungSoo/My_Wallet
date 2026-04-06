@@ -15,8 +15,8 @@ public class UnbanRequestEntity {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  @Column(name = "login_id", nullable = false, length = 50)
-  private String loginId;
+  @Column(name = "user_id", nullable = false)
+  private Long userId;
 
   @Column(name = "status", nullable = false, length = 20)
   private String status;
@@ -24,8 +24,11 @@ public class UnbanRequestEntity {
   @Column(name = "created_at", nullable = false)
   private LocalDateTime createdAt;
 
-  @Column(name = "updated_at")
-  private LocalDateTime updatedAt;
+  @Column(name = "decided_at")
+  private LocalDateTime decidedAt;
+
+  @Column(name = "decided_by_admin_user_id")
+  private Long decidedByAdminUserId;
 
   protected UnbanRequestEntity() {}
 
@@ -33,12 +36,12 @@ public class UnbanRequestEntity {
     return id;
   }
 
-  public String getLoginId() {
-    return loginId;
+  public Long getUserId() {
+    return userId;
   }
 
-  public void setLoginId(String loginId) {
-    this.loginId = loginId;
+  public void setUserId(Long userId) {
+    this.userId = userId;
   }
 
   public String getStatus() {
@@ -57,12 +60,20 @@ public class UnbanRequestEntity {
     this.createdAt = createdAt;
   }
 
-  public LocalDateTime getUpdatedAt() {
-    return updatedAt;
+  public LocalDateTime getDecidedAt() {
+    return decidedAt;
   }
 
-  public void setUpdatedAt(LocalDateTime updatedAt) {
-    this.updatedAt = updatedAt;
+  public void setDecidedAt(LocalDateTime decidedAt) {
+    this.decidedAt = decidedAt;
+  }
+
+  public Long getDecidedByAdminUserId() {
+    return decidedByAdminUserId;
+  }
+
+  public void setDecidedByAdminUserId(Long decidedByAdminUserId) {
+    this.decidedByAdminUserId = decidedByAdminUserId;
   }
 }
 

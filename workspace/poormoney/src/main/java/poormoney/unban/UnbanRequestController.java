@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import java.security.Principal;
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.springframework.http.ResponseEntity;
@@ -14,14 +15,18 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import poormoney.users.UserEntity;
+import poormoney.users.UserRepository;
 
 @RestController
 @RequestMapping("/api/unban-requests")
 public class UnbanRequestController {
   private final UnbanRequestRepository unbanRequestRepository;
+  private final UserRepository userRepository;
 
-  public UnbanRequestController(UnbanRequestRepository unbanRequestRepository) {
+  public UnbanRequestController(UnbanRequestRepository unbanRequestRepository, UserRepository userRepository) {
     this.unbanRequestRepository = unbanRequestRepository;
+    this.userRepository = userRepository;
   }
 
   public record PublicCreateRequest(@NotBlank String loginId) {}
@@ -40,15 +45,20 @@ public class UnbanRequestController {
   private Map<String, Object> createInternal(String loginIdRaw) {
     String loginId = loginIdRaw == null ? "" : loginIdRaw.trim();
     if (loginId.isEmpty()) return Map.of("ok", false, "reason", "아이디를 확인할 수 없습니다.");
+    UserEntity user =
+        userRepository.findByLoginId(loginId).orElse(null);
+    if (user == null) return Map.of("ok", false, "reason", "사용자를 찾을 수 없습니다.");
+
     boolean existsPending =
-        unbanRequestRepository.findFirstByLoginIdAndStatusOrderByIdDesc(loginId, "pending").isPresent();
+        unbanRequestRepository.findFirstByUserIdAndStatusOrderByIdDesc(user.getId(), "PENDING").isPresent();
     if (existsPending) return Map.of("ok", false, "reason", "이미 정지 해제 요청이 접수되어 있습니다.");
 
     UnbanRequestEntity e = new UnbanRequestEntity();
-    e.setLoginId(loginId);
-    e.setStatus("pending");
+    e.setUserId(user.getId());
+    e.setStatus("PENDING");
     e.setCreatedAt(LocalDateTime.now());
-    e.setUpdatedAt(null);
+    e.setDecidedAt(null);
+    e.setDecidedByAdminUserId(null);
     unbanRequestRepository.save(e);
     return Map.of("ok", true);
   }
@@ -58,13 +68,19 @@ public class UnbanRequestController {
     List<Map<String, Object>> rows =
         unbanRequestRepository.findAll().stream()
             .sorted((a, b) -> Long.compare(b.getId(), a.getId()))
-            .map(e -> Map.of(
-                "id", "ubr-" + e.getId(),
-                "userId", e.getLoginId(),
-                "status", e.getStatus(),
-                "createdAt", e.getCreatedAt().toString(),
-                "updatedAt", e.getUpdatedAt() == null ? null : e.getUpdatedAt().toString()
-            ))
+            .map(e -> {
+              Map<String, Object> m = new LinkedHashMap<>();
+              m.put("id", "ubr-" + e.getId());
+              String loginId =
+                  e.getUserId() == null
+                      ? null
+                      : userRepository.findById(e.getUserId()).map(UserEntity::getLoginId).orElse(null);
+              m.put("userId", loginId);
+              m.put("status", e.getStatus() == null ? null : e.getStatus().toLowerCase());
+              m.put("createdAt", e.getCreatedAt().toString());
+              m.put("updatedAt", e.getDecidedAt() == null ? null : e.getDecidedAt().toString());
+              return m;
+            })
             .toList();
     return ResponseEntity.ok(rows);
   }
@@ -76,8 +92,8 @@ public class UnbanRequestController {
     long pk = parseUbrId(id);
     UnbanRequestEntity e =
         unbanRequestRepository.findById(pk).orElseThrow(() -> new IllegalArgumentException("요청을 찾을 수 없습니다."));
-    e.setStatus(req.status());
-    e.setUpdatedAt(LocalDateTime.now());
+    e.setStatus(req.status() == null ? "PENDING" : req.status().trim().toUpperCase());
+    e.setDecidedAt(LocalDateTime.now());
     unbanRequestRepository.save(e);
     return ResponseEntity.ok().build();
   }

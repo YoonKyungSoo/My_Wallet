@@ -1,6 +1,7 @@
 package poormoney.submissions;
 
 import jakarta.validation.Valid;
+import java.security.Principal;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -19,8 +20,9 @@ public class RestaurantSubmissionController {
 
   @PostMapping
   public ResponseEntity<RestaurantSubmissionDtos.AdminRow> create(
-      @Valid @RequestBody RestaurantSubmissionDtos.CreateRequest req) {
-    return ResponseEntity.ok(submissionService.create(req));
+      @Valid @RequestBody RestaurantSubmissionDtos.CreateRequest req, Principal principal) {
+    if (principal == null) return ResponseEntity.status(401).build();
+    return ResponseEntity.ok(submissionService.create(req, principal));
   }
 }
 

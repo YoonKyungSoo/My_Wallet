@@ -3,6 +3,7 @@ import MainPage from './pages/MainPage';
 import ReviewPage from './pages/ReviewPage';
 import DetailPage from './pages/DetailPage';
 import ProfilePage from './pages/ProfilePage';
+import ProfileEditPage from './pages/ProfileEditPage';
 import WalletPage from './pages/WalletPage';
 import SettingsPage from './pages/SettingsPage';
 import ActivityPage from './pages/ActivityPage';
@@ -21,6 +22,7 @@ export default function App() {
         <Route path="/detail" element={<DetailPage />} />
         <Route path="/admin" element={<RequireAdmin><AdminPage /></RequireAdmin>} />
         <Route path="/profile" element={<RequireAuth><ProfilePage /></RequireAuth>} />
+        <Route path="/profile/edit" element={<RequireAuth><ProfileEditPage /></RequireAuth>} />
         <Route path="/wallet" element={<RequireAuth><WalletPage /></RequireAuth>} />
         <Route path="/settings" element={<RequireAuth><SettingsPage /></RequireAuth>} />
         <Route path="/activity" element={<RequireAuth><ActivityPage /></RequireAuth>} />
