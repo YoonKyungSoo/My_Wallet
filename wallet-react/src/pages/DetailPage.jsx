@@ -728,8 +728,8 @@ export default function DetailPage() {
       try {
         const url = await fileToProfileDataUrl(file, COMMENT_IMAGE_MAX_SIDE, 0.82);
         next.push(url);
-      } catch {
-        alert('이미지를 불러오지 못했습니다. 다른 파일로 시도해 주세요.');
+      } catch (e) {
+        alert(e?.message || '이미지를 불러오지 못했습니다. 다른 파일로 시도해 주세요.');
       }
     }
     setPendingPhotos(next);
@@ -1102,7 +1102,13 @@ export default function DetailPage() {
                     <div className="flex flex-wrap items-center gap-2">
                       <label className="cursor-pointer px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-extrabold text-slate-600 hover:bg-slate-100">
                         사진 첨부 (최대 {MAP_COMMENT_MAX_PHOTOS}장)
-                        <input type="file" accept="image/*" multiple className="hidden" onChange={onPickPhotos} />
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif"
+                          multiple
+                          className="hidden"
+                          onChange={onPickPhotos}
+                        />
                       </label>
                       {pendingPhotos.length > 0 ? (
                         <span className="text-xs font-bold text-slate-400">{pendingPhotos.length}/{MAP_COMMENT_MAX_PHOTOS}</span>

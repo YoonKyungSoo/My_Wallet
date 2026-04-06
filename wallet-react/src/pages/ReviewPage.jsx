@@ -49,6 +49,10 @@ export default function ReviewPage() {
   const [submitDone, setSubmitDone] = useState(false);
   const [category, setCategory] = useState(CATEGORY_OPTIONS[0]);
   const placesServiceRef = useRef(null);
+  const uploadMaxSide =
+    typeof window !== 'undefined' && window.innerWidth < 768
+      ? 720
+      : 960;
 
   const formatPriceKRW = (value) => {
     const digits = value.replace(/[^\d]/g, '');
@@ -157,9 +161,9 @@ export default function ReviewPage() {
       const photoUrls = [];
       for (const file of photos.slice(0, REGISTER_MAX_PHOTOS)) {
         try {
-          photoUrls.push(await fileToProfileDataUrl(file, 960, 0.82));
-        } catch {
-          alert('사진을 처리하지 못했습니다. 다른 파일로 바꿔 주세요.');
+          photoUrls.push(await fileToProfileDataUrl(file, uploadMaxSide, 0.8));
+        } catch (e) {
+          alert(e?.message || '사진을 처리하지 못했습니다. 다른 파일로 바꿔 주세요.');
           return;
         }
       }
@@ -200,9 +204,9 @@ export default function ReviewPage() {
     const photoUrls = [];
     for (const file of photos.slice(0, REGISTER_MAX_PHOTOS)) {
       try {
-        photoUrls.push(await fileToProfileDataUrl(file, 960, 0.82));
-      } catch {
-        alert('사진을 처리하지 못했습니다. 다른 파일로 바꿔 주세요.');
+        photoUrls.push(await fileToProfileDataUrl(file, uploadMaxSide, 0.8));
+      } catch (e) {
+        alert(e?.message || '사진을 처리하지 못했습니다. 다른 파일로 바꿔 주세요.');
         return;
       }
     }
@@ -300,7 +304,7 @@ export default function ReviewPage() {
                       </p>
                       <input
                         type="file"
-                        accept="image/*"
+                        accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif"
                         multiple
                         className="hidden"
                         onChange={(e) => {
@@ -448,7 +452,7 @@ export default function ReviewPage() {
                     </p>
                     <input
                       type="file"
-                      accept="image/*"
+                      accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif"
                       multiple
                       className="hidden"
                       onChange={(e) => {

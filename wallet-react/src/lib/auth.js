@@ -99,6 +99,9 @@ export async function parseApiErrorMessage(res) {
       const j = JSON.parse(text);
       if (typeof j.message === 'string' && j.message) return j.message;
       if (typeof j.error === 'string' && j.error) return j.error;
+      if (typeof j.reason === 'string' && j.reason) return j.reason;
+      // JSON 응답 원문이 화면에 그대로 노출되지 않도록 방지
+      return '';
     } catch {
       /* non-json response */
     }

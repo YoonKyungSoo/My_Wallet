@@ -72,6 +72,9 @@ export default function MainPage() {
   const [categoryExpanded, setCategoryExpanded] = useState(false);
   /** true면 음식·가격 카테고리 패널 모두 숨김(필터 버튼만 표시) */
   const [categoryFullyCollapsed, setCategoryFullyCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== 'undefined' ? window.matchMedia('(max-width: 767px)').matches : false,
+  );
   const [activeSort, setActiveSort] = useState('평점순');
   const [clusterCount] = useState(0);
   const [searchSuggestions, setSearchSuggestions] = useState([]);
@@ -94,6 +97,20 @@ export default function MainPage() {
   const priceOverlaysRef = useRef([]);
   const detailOverlayRef = useRef(null);
   const openDetailOverlayByCardRef = useRef(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const mq = window.matchMedia('(max-width: 767px)');
+    const sync = () => setIsMobile(mq.matches);
+    sync();
+    try {
+      mq.addEventListener('change', sync);
+      return () => mq.removeEventListener('change', sync);
+    } catch {
+      mq.addListener(sync);
+      return () => mq.removeListener(sync);
+    }
+  }, []);
 
   const clearSearchMarkers = () => {
     searchMarkersRef.current.forEach((marker) => marker.setMap(null));
@@ -462,9 +479,9 @@ export default function MainPage() {
   const categoryCards = useMemo(
     () => cards.filter((card) =>
       (activeCategory === '전체' || card.category === activeCategory) &&
-      isInPriceCategory(card, activePriceCategory),
+      (isMobile ? true : isInPriceCategory(card, activePriceCategory)),
     ),
-    [cards, activeCategory, activePriceCategory],
+    [cards, activeCategory, activePriceCategory, isMobile],
   );
 
   useEffect(() => {
@@ -774,7 +791,14 @@ export default function MainPage() {
                   <span>필터</span>
                 </button>
               ) : categoryExpanded ? (
-                <div className="grid w-[min(200px,calc(100vw-4.5rem))] grid-cols-2 gap-1 p-1.5 sm:w-[min(216px,calc(100vw-5.5rem))] sm:gap-2 sm:p-2 bg-white rounded-xl sm:rounded-3xl shadow-lg border border-orange-100/80">
+                <div className="grid w-[min(220px,calc(100vw-4.5rem))] grid-cols-1 sm:grid-cols-2 gap-1 p-1.5 sm:w-[min(280px,calc(100vw-5.5rem))] sm:gap-2 sm:p-2 bg-white rounded-xl sm:rounded-3xl shadow-lg border border-orange-100/80 max-h-[62vh] overflow-y-auto">
+                  <button
+                    type="button"
+                    onClick={() => setCategoryExpanded(false)}
+                    className="sm:col-span-2 rounded-xl bg-slate-100 px-2 py-1.5 text-[11px] font-extrabold text-slate-600 hover:bg-slate-200 sm:rounded-2xl sm:px-3 sm:py-2 sm:text-[12px]"
+                  >
+                    닫기
+                  </button>
                   {MAIN_CATEGORIES.map((category) => (
                     category === '기타' ? (
                       <Fragment key="category-etc-with-collapse">
@@ -815,25 +839,29 @@ export default function MainPage() {
                       </button>
                     )
                   ))}
-                  <div className="col-span-2 my-0.5 h-px bg-slate-200 sm:my-1"></div>
-                  {['전체', '5천원 이하', '5천원~1만원', '1만원 초과'].map((priceCategory) => (
-                    <button
-                      key={priceCategory}
-                      type="button"
-                      onClick={() => setActivePriceCategory(priceCategory)}
-                      className={`rounded-xl px-2 py-1.5 text-[9px] font-bold transition-all sm:rounded-2xl sm:px-3 sm:py-2 sm:text-[11px] ${
-                        activePriceCategory === priceCategory
-                          ? 'bg-emerald-500 text-white shadow-md'
-                          : 'text-slate-600 hover:bg-white'
-                      }`}
-                    >
-                      {priceCategory}
-                    </button>
-                  ))}
+                  {!isMobile ? (
+                    <>
+                      <div className="col-span-2 my-0.5 h-px bg-slate-200 sm:my-1"></div>
+                      {['전체', '5천원 이하', '5천원~1만원', '1만원 초과'].map((priceCategory) => (
+                        <button
+                          key={priceCategory}
+                          type="button"
+                          onClick={() => setActivePriceCategory(priceCategory)}
+                          className={`rounded-xl px-2 py-1.5 text-[9px] font-bold transition-all sm:rounded-2xl sm:px-3 sm:py-2 sm:text-[11px] ${
+                            activePriceCategory === priceCategory
+                              ? 'bg-emerald-500 text-white shadow-md'
+                              : 'text-slate-600 hover:bg-white'
+                          }`}
+                        >
+                          {priceCategory}
+                        </button>
+                      ))}
+                    </>
+                  ) : null}
                 </div>
               ) : (
                 <div className="flex w-fit max-w-[min(188px,calc(100vw-4.25rem))] flex-col gap-1 p-0.5 sm:max-w-[min(200px,calc(100vw-5.5rem))] sm:gap-2 sm:rounded-3xl sm:p-1 bg-white rounded-xl shadow-lg border border-orange-100/80">
-                  {['전체', '한식', '양식', '카페'].map((category) => (
+                  {(isMobile ? ['한식', '양식', '카페'] : ['전체', '한식', '양식', '카페']).map((category) => (
                     <button
                       key={category}
                       type="button"
@@ -854,21 +882,25 @@ export default function MainPage() {
                   >
                     펼치기
                   </button>
-                  <div className="h-px bg-slate-200 my-0.5 sm:my-1"></div>
-                  {['전체', '5천원 이하', '5천원~1만원', '1만원 초과'].map((priceCategory) => (
-                    <button
-                      key={priceCategory}
-                      type="button"
-                      onClick={() => setActivePriceCategory(priceCategory)}
-                      className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl sm:rounded-2xl text-[10px] sm:text-[11px] font-bold transition-all ${
-                        activePriceCategory === priceCategory
-                          ? 'bg-emerald-500 text-white shadow-md'
-                          : 'text-slate-600 hover:bg-white'
-                      }`}
-                    >
-                      {priceCategory}
-                    </button>
-                  ))}
+                  {!isMobile ? (
+                    <>
+                      <div className="h-px bg-slate-200 my-0.5 sm:my-1"></div>
+                      {['전체', '5천원 이하', '5천원~1만원', '1만원 초과'].map((priceCategory) => (
+                        <button
+                          key={priceCategory}
+                          type="button"
+                          onClick={() => setActivePriceCategory(priceCategory)}
+                          className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl sm:rounded-2xl text-[10px] sm:text-[11px] font-bold transition-all ${
+                            activePriceCategory === priceCategory
+                              ? 'bg-emerald-500 text-white shadow-md'
+                              : 'text-slate-600 hover:bg-white'
+                          }`}
+                        >
+                          {priceCategory}
+                        </button>
+                      ))}
+                    </>
+                  ) : null}
                   <button
                     type="button"
                     onClick={() => setCategoryFullyCollapsed(true)}
