@@ -30,6 +30,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Create production env
+        run: echo "VITE_KAKAO_JS_KEY=${{ secrets.VITE_KAKAO_JS_KEY }}" > .env.production
+
       - name: Build
         run: npm run build
 
